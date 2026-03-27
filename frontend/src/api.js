@@ -42,7 +42,23 @@ export const api = {
   products: {
     list: (category) => req(`/api/products/${category ? `?category=${category}` : ''}`),
     get: (id) => req(`/api/products/${id}`),
-    seed: () => authed('/api/products/seed', { method: 'POST' }),
+    create: (data) => authed('/api/products/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => authed(`/api/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    remove: (id) => authed(`/api/products/${id}`, { method: 'DELETE' }),
+    uploadImage: (id, file) => {
+      const body = new FormData();
+      body.append('image', file);
+      const token = localStorage.getItem('access_token');
+      return fetch(`${BASE_URL}/api/products/${id}/image`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body,
+      }).then(async r => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        return d;
+      });
+    },
   },
 
   // ── Orders ───────────────────────────────────────────────────────────────

@@ -7,9 +7,10 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, user } = useAuthStore();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -17,114 +18,88 @@ export default function LoginPage() {
   }, [user, navigate]);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const err = params.get('error');
-    if (err) setError(err);
+    const e = new URLSearchParams(location.search).get('error');
+    if (e) setError(e);
   }, [location.search]);
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setBusy(true);
     try {
-      const data = await api.login(form.email, form.password);
+      const data = await api.login(email, password);
       login({ access_token: data.access_token, refresh_token: data.refresh_token }, data.user);
       navigate('/app', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
+    <div className="min-h-screen bg-black text-white flex flex-col">
 
-      {/* LEFT — branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-14 border-r border-white/10">
-        <button onClick={() => navigate('/')} className="text-xs tracking-[0.3em] uppercase text-white/40 hover:text-white transition-colors w-fit">
-          ← AVISHU
-        </button>
+      <div className="flex-1 flex flex-col items-center justify-center px-8 py-16">
+        <div className="w-full max-w-[340px]">
 
-        <div>
-          <div className="text-[10px] tracking-[0.4em] uppercase text-white/30 mb-6">АВТОРИЗАЦИЯ</div>
-          <h2 className="text-5xl font-black uppercase leading-none tracking-tight mb-6">
-            ВОЙТИ<br />В СИСТЕМУ
-          </h2>
-          <div className="w-8 h-px bg-white/20 mb-6" />
-          <p className="text-white/30 text-sm leading-relaxed max-w-xs">
-            Единая точка входа для клиентов, франчайзи и производства.
-          </p>
-        </div>
+          <div className="text-center mb-14">
+            <p className="text-[10px] font-semibold tracking-[0.6em] uppercase text-white/20 mb-5">
+              Premium Fashion
+            </p>
+            <h1 className="text-[40px] font-black tracking-[0.15em] uppercase leading-none">AVISHU</h1>
+            <div className="w-8 h-px bg-white/20 mx-auto mt-6" />
+          </div>
 
-        <div className="text-[10px] tracking-[0.3em] uppercase text-white/20">© AVISHU 2024</div>
-      </div>
-
-      {/* RIGHT — form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-8 py-16">
-        <button onClick={() => navigate('/')} className="lg:hidden text-xs tracking-[0.3em] uppercase text-white/40 mb-12">
-          AVISHU
-        </button>
-
-        <div className="w-full max-w-sm">
-          <h1 className="text-2xl font-black uppercase tracking-tight mb-1">ВХОД</h1>
-          <p className="text-white/30 text-xs tracking-wide mb-8">
-            Нет аккаунта?{' '}
-            <Link to="/register" className="text-white underline underline-offset-4 hover:text-white/60 transition-colors">
-              РЕГИСТРАЦИЯ
-            </Link>
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">EMAIL</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                placeholder="your@email.com"
-                className="w-full bg-transparent border border-white/15 text-white placeholder-white/20 px-4 py-3 text-sm outline-none focus:border-white/50 transition-colors"
-                required
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">ПАРОЛЬ</label>
-              <div className="relative">
+          <form onSubmit={submit}>
+            <div className="border border-white/12">
+              <div className="border-b border-white/12 px-5 py-4">
+                <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-2.5">Email</p>
                 <input
-                  type={showPass ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full bg-transparent border border-white/15 text-white placeholder-white/20 px-4 py-3 pr-12 text-sm outline-none focus:border-white/50 transition-colors"
-                  required
+                  type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="your@email.com" required autoComplete="email"
+                  className="w-full bg-transparent text-white text-sm outline-none placeholder-white/18"
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors text-xs">
-                  {showPass ? 'СКРЫТЬ' : 'ПОКАЗАТЬ'}
+              </div>
+              <div className="px-5 py-4 flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-2.5">Пароль</p>
+                  <input
+                    type={showPass ? 'text' : 'password'} value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••" required autoComplete="current-password"
+                    className="w-full bg-transparent text-white text-sm outline-none placeholder-white/18"
+                  />
+                </div>
+                <button type="button" onClick={() => setShowPass(s => !s)}
+                  className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/22 hover:text-white/55 transition-colors flex-shrink-0 pb-0.5">
+                  {showPass ? 'Скрыть' : 'Показать'}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="border border-white/20 bg-white/5 px-4 py-3 text-xs text-white/70">
-                {error}
-              </div>
+              <p className="text-xs text-red-400/75 mt-4 px-1">{error}</p>
             )}
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-white text-black font-black uppercase tracking-[0.2em] py-4 text-sm hover:bg-white/90 transition-colors disabled:opacity-40"
-              >
-                {loading ? '...' : 'ВОЙТИ'}
-              </button>
-            </div>
+            <button type="submit" disabled={busy}
+              className="w-full mt-5 bg-white text-black text-xs font-black uppercase tracking-[0.35em] py-5 hover:bg-white/92 active:bg-white/85 transition-colors disabled:opacity-40">
+              {busy ? '...' : 'ВОЙТИ'}
+            </button>
           </form>
+
+          <p className="text-center mt-8 text-[10px] text-white/25">
+            Нет аккаунта?{' '}
+            <Link to="/register"
+              className="text-white/55 hover:text-white transition-colors underline underline-offset-4 uppercase tracking-wider font-bold">
+              Регистрация
+            </Link>
+          </p>
         </div>
+      </div>
+
+      <div className="pb-8 text-center">
+        <p className="text-[9px] text-white/10 tracking-[0.35em] uppercase">Казахстан · 2024</p>
       </div>
     </div>
   );

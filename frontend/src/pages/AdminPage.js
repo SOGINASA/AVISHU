@@ -14,11 +14,23 @@ const STATUS = {
   delivered: { label: 'Доставлен', dot: 'bg-white/15' },
 };
 
+const CATEGORIES = [
+  { id: 'outerwear', label: 'Верхняя одежда' },
+  { id: 'jackets',   label: 'Жакеты' },
+  { id: 'dresses',   label: 'Платья' },
+  { id: 'trousers',  label: 'Брюки' },
+  { id: 'tops',      label: 'Блузы' },
+];
+
 const fmt = (n) =>
-  new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'KZT', maximumFractionDigits: 0 }).format(n);
 
 const fmtDate = (s) =>
   new Date(s).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+const ROLE_LABEL = { client: 'Клиент', franchisee: 'Партнёр', production: 'Цех', admin: 'Адм' };
+
+const emptyForm = { name: '', price: '', category: 'outerwear', description: '', isPreorder: false, inStock: true };
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -32,6 +44,22 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [search, setSearch] = useState('');
+
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [formBusy, setFormBusy] = useState(false);
+  const [formErr, setFormErr] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editErr, setEditErr] = useState('');
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState(null);
 
   useEffect(() => {
     connectWs();
@@ -48,9 +76,19 @@ export default function AdminPage() {
     finally { setUsersLoading(false); }
   }, [search]);
 
+  const loadProducts = useCallback(async () => {
+    setProductsLoading(true);
+    try {
+      const d = await api.products.list();
+      setProducts(d.products || []);
+    } catch {}
+    finally { setProductsLoading(false); }
+  }, []);
+
   useEffect(() => {
     if (tab === 'users') loadUsers();
-  }, [tab, loadUsers]);
+    if (tab === 'products') loadProducts();
+  }, [tab, loadUsers, loadProducts]);
 
   const signOut = () => { logout(); navigate('/'); };
 
@@ -71,6 +109,81 @@ export default function AdminPage() {
     } catch {}
   };
 
+  const startEdit = (p) => {
+    setEditingId(p.id);
+    setEditForm({ name: p.name, price: String(p.price), category: p.category || 'outerwear', description: p.description || '', isPreorder: p.isPreorder || false, inStock: p.inStock !== false });
+    setEditImageFile(null);
+    setEditImagePreview(p.imageUrl ? `${require('../api').BASE_URL}${p.imageUrl}` : null);
+    setEditErr('');
+  };
+
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    if (!editForm.name.trim() || !editForm.price) { setEditErr('Название и цена обязательны'); return; }
+    setEditBusy(true);
+    try {
+      let d = await api.products.update(editingId, {
+        name: editForm.name.trim(),
+        price: parseFloat(editForm.price),
+        category: editForm.category,
+        description: editForm.description.trim() || undefined,
+        isPreorder: editForm.isPreorder,
+        inStock: editForm.isPreorder ? false : editForm.inStock,
+      });
+      let product = d.product;
+      if (editImageFile) {
+        const upd = await api.products.uploadImage(editingId, editImageFile);
+        product = upd.product;
+      }
+      setProducts(ps => ps.map(p => p.id === editingId ? product : p));
+      setEditingId(null);
+    } catch (e) {
+      setEditErr(e.message);
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const removeProduct = async (p) => {
+    try {
+      await api.products.remove(p.id);
+      setProducts(ps => ps.filter(x => x.id !== p.id));
+    } catch {}
+  };
+
+  const addProduct = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.price) { setFormErr('Название и цена обязательны'); return; }
+    setFormErr('');
+    setFormBusy(true);
+    try {
+      const d = await api.products.create({
+        name: form.name.trim(),
+        price: parseFloat(form.price),
+        category: form.category,
+        description: form.description.trim() || undefined,
+        isPreorder: form.isPreorder,
+        inStock: form.isPreorder ? false : form.inStock,
+      });
+      let product = d.product;
+      if (imageFile) {
+        try {
+          const upd = await api.products.uploadImage(product.id, imageFile);
+          product = upd.product;
+        } catch {}
+      }
+      setProducts(ps => [product, ...ps]);
+      setForm(emptyForm);
+      setImageFile(null);
+      setImagePreview(null);
+      setShowForm(false);
+    } catch (e) {
+      setFormErr(e.message);
+    } finally {
+      setFormBusy(false);
+    }
+  };
+
   const visible = filter === 'all' ? orders : orders.filter(o => o.status === filter);
 
   const totals = {
@@ -79,8 +192,6 @@ export default function AdminPage() {
     active: orders.filter(o => ['accepted', 'sewing'].includes(o.status)).length,
     done: orders.filter(o => o.status === 'ready').length,
   };
-
-  const ROLE_LABEL = { client: 'Клиент', franchisee: 'Партнёр', production: 'Цех', admin: 'Адм' };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -127,12 +238,16 @@ export default function AdminPage() {
         </div>
 
         <div className="flex gap-px bg-white/6 border border-white/6 mb-8 overflow-hidden">
-          {['orders', 'users'].map(t => (
-            <button key={t} onClick={() => setTab(t)}
+          {[
+            { id: 'orders',   label: `Заказы · ${orders.length}` },
+            { id: 'products', label: `Товары · ${products.length}` },
+            { id: 'users',    label: 'Пользователи' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex-1 py-3 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors bg-black ${
-                tab === t ? 'text-white' : 'text-white/25 hover:text-white/50'
+                tab === t.id ? 'text-white' : 'text-white/25 hover:text-white/50'
               }`}>
-              {t === 'orders' ? `Заказы · ${orders.length}` : 'Пользователи'}
+              {t.label}
             </button>
           ))}
         </div>
@@ -141,12 +256,12 @@ export default function AdminPage() {
           <>
             <div className="flex gap-px bg-white/6 border border-white/6 mb-6 overflow-hidden">
               {[
-                { id: 'all', label: 'Все' },
-                { id: 'placed', label: 'Новые' },
-                { id: 'accepted', label: 'Приняты' },
-                { id: 'sewing', label: 'Пошив' },
-                { id: 'ready', label: 'Готовы' },
-                { id: 'delivered', label: 'Доставлены' },
+                { id: 'all',       label: 'Все' },
+                { id: 'placed',    label: 'Новые' },
+                { id: 'accepted',  label: 'Приняты' },
+                { id: 'sewing',    label: 'Пошив' },
+                { id: 'ready',     label: 'Готовы' },
+                { id: 'delivered', label: 'Готово' },
               ].map(f => (
                 <button key={f.id} onClick={() => setFilter(f.id)}
                   className={`flex-1 py-2.5 text-[9px] font-bold tracking-[0.1em] uppercase transition-colors bg-black ${
@@ -206,16 +321,224 @@ export default function AdminPage() {
           </>
         )}
 
+        {tab === 'products' && (
+          <>
+            <div className="mb-6">
+              <button onClick={() => { setShowForm(f => !f); setFormErr(''); }}
+                className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/12 px-5 py-2.5 hover:border-white/35 hover:text-white transition-colors text-white/45">
+                {showForm ? '✕ Закрыть' : '+ Добавить товар'}
+              </button>
+            </div>
+
+            {showForm && (
+              <form onSubmit={addProduct} className="border border-white/10 bg-[#080808] p-6 mb-8 space-y-5">
+                <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25">Новый товар</p>
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Название</p>
+                    <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="AVISHU COAT NO.2"
+                      className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Цена, ₸</p>
+                    <input value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                      placeholder="450000" type="number" min="0"
+                      className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Категория</p>
+                  <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                    className="w-full bg-[#080808] border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors">
+                    {CATEGORIES.map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Описание</p>
+                  <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="Краткое описание изделия..."
+                    rows={2}
+                    className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15 resize-none" />
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Фото товара</p>
+                  <label className="flex items-center gap-4 cursor-pointer group">
+                    <div className="border border-white/12 group-hover:border-white/30 transition-colors px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/70">
+                      {imageFile ? imageFile.name : 'Выбрать файл'}
+                    </div>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        setImageFile(f);
+                        setImagePreview(URL.createObjectURL(f));
+                      }} />
+                    {imagePreview && (
+                      <img src={imagePreview} alt="" className="h-16 w-12 object-cover border border-white/10" />
+                    )}
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-8">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={form.isPreorder}
+                      onChange={e => setForm(f => ({ ...f, isPreorder: e.target.checked, inStock: e.target.checked ? false : f.inStock }))}
+                      className="w-4 h-4 border border-white/20 bg-transparent accent-white" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Предзаказ</span>
+                  </label>
+                  {!form.isPreorder && (
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={form.inStock}
+                        onChange={e => setForm(f => ({ ...f, inStock: e.target.checked }))}
+                        className="w-4 h-4 border border-white/20 bg-transparent accent-white" />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">В наличии</span>
+                    </label>
+                  )}
+                </div>
+
+                {formErr && <p className="text-xs text-red-400/80">{formErr}</p>}
+
+                <button type="submit" disabled={formBusy}
+                  className="bg-white text-black text-xs font-black uppercase tracking-[0.25em] px-8 py-3.5 hover:bg-white/92 transition-colors disabled:opacity-40">
+                  {formBusy ? '...' : 'Добавить'}
+                </button>
+              </form>
+            )}
+
+            {productsLoading ? (
+              <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
+            ) : products.length === 0 ? (
+              <div className="py-20 text-center text-sm text-white/20">Товаров нет</div>
+            ) : (
+              <div className="divide-y divide-white/6">
+                {products.map(p => (
+                  <div key={p.id}>
+                    <div className="py-4 flex items-center gap-3">
+                      {p.imageUrl && (
+                        <img src={`${require('../api').BASE_URL}${p.imageUrl}`} alt=""
+                          className="w-8 h-11 object-cover flex-shrink-0 border border-white/8" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold uppercase tracking-wide truncate">{p.name}</p>
+                        <p className="text-[10px] text-white/30 mt-0.5">
+                          {CATEGORIES.find(c => c.id === p.category)?.label || p.category}
+                          {p.isPreorder ? ' · Предзаказ' : p.inStock ? ' · В наличии' : ' · Нет'}
+                        </p>
+                      </div>
+                      <p className="text-sm font-black flex-shrink-0">{fmt(p.price)}</p>
+                      <button onClick={() => editingId === p.id ? setEditingId(null) : startEdit(p)}
+                        className={`text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 border transition-colors flex-shrink-0 ${
+                          editingId === p.id ? 'border-white/30 text-white/60' : 'border-white/10 text-white/25 hover:border-white/30 hover:text-white/60'
+                        }`}>
+                        {editingId === p.id ? 'Закрыть' : 'Изменить'}
+                      </button>
+                      <button onClick={() => removeProduct(p)}
+                        className="text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 border border-white/10 text-white/25 hover:border-red-500/40 hover:text-red-400 transition-colors flex-shrink-0">
+                        Убрать
+                      </button>
+                    </div>
+
+                    {editingId === p.id && (
+                      <form onSubmit={saveEdit} className="bg-[#0a0a0a] border border-white/8 p-5 mb-2 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Название</p>
+                            <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                              className="w-full bg-transparent border-b border-white/12 text-white pb-2 text-sm outline-none focus:border-white/40 transition-colors" />
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Цена, ₸</p>
+                            <input value={editForm.price} type="number" onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))}
+                              className="w-full bg-transparent border-b border-white/12 text-white pb-2 text-sm outline-none focus:border-white/40 transition-colors" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Категория</p>
+                          <select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}
+                            className="w-full bg-[#0a0a0a] border-b border-white/12 text-white/80 pb-2 text-sm outline-none">
+                            {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                          </select>
+                        </div>
+
+                        <div>
+                          <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Описание</p>
+                          <textarea value={editForm.description} rows={2} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                            className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2 text-sm outline-none focus:border-white/40 transition-colors resize-none" />
+                        </div>
+
+                        <div>
+                          <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Фото</p>
+                          <label className="flex items-center gap-3 cursor-pointer group">
+                            <span className="border border-white/12 group-hover:border-white/30 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">
+                              {editImageFile ? editImageFile.name : 'Заменить фото'}
+                            </span>
+                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                              onChange={e => {
+                                const f = e.target.files?.[0];
+                                if (!f) return;
+                                setEditImageFile(f);
+                                setEditImagePreview(URL.createObjectURL(f));
+                              }} />
+                            {editImagePreview && (
+                              <img src={editImagePreview} alt="" className="h-12 w-8 object-cover border border-white/10" />
+                            )}
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={editForm.isPreorder}
+                              onChange={e => setEditForm(f => ({ ...f, isPreorder: e.target.checked }))}
+                              className="accent-white" />
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Предзаказ</span>
+                          </label>
+                          {!editForm.isPreorder && (
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={editForm.inStock}
+                                onChange={e => setEditForm(f => ({ ...f, inStock: e.target.checked }))}
+                                className="accent-white" />
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">В наличии</span>
+                            </label>
+                          )}
+                        </div>
+
+                        {editErr && <p className="text-xs text-red-400/80">{editErr}</p>}
+
+                        <div className="flex gap-2.5">
+                          <button type="button" onClick={() => setEditingId(null)}
+                            className="px-5 py-2.5 border border-white/10 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 hover:text-white/60 transition-colors">
+                            Отмена
+                          </button>
+                          <button type="submit" disabled={editBusy}
+                            className="px-6 py-2.5 bg-white text-black text-[10px] font-black uppercase tracking-[0.25em] hover:bg-white/92 transition-colors disabled:opacity-40">
+                            {editBusy ? '...' : 'Сохранить'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
         {tab === 'users' && (
           <>
             <div className="flex gap-3 mb-6">
-              <input
-                value={search}
+              <input value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && loadUsers()}
                 placeholder="Поиск по email или имени..."
-                className="flex-1 bg-transparent border border-white/12 text-white/80 px-4 py-2.5 text-xs outline-none focus:border-white/35 transition-colors placeholder-white/20"
-              />
+                className="flex-1 bg-transparent border border-white/12 text-white/80 px-4 py-2.5 text-xs outline-none focus:border-white/35 transition-colors placeholder-white/20" />
               <button onClick={loadUsers}
                 className="px-5 py-2.5 border border-white/12 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:text-white hover:border-white/35 transition-colors">
                 Найти
@@ -250,7 +573,6 @@ export default function AdminPage() {
             )}
           </>
         )}
-
       </div>
     </div>
   );

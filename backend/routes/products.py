@@ -1,6 +1,10 @@
-from flask import Blueprint, request, jsonify
+import os
+import uuid
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, User, Product
+
+ALLOWED_EXT = {'jpg', 'jpeg', 'png', 'webp'}
 
 products_bp = Blueprint('products', __name__)
 
@@ -49,30 +53,62 @@ def create_product():
     return jsonify({'product': product.to_dict()}), 201
 
 
-@products_bp.route('/seed', methods=['POST'])
+@products_bp.route('/<int:product_id>', methods=['PATCH'])
 @jwt_required()
-def seed_products():
-    """Seed demo products for hackathon demo."""
+def update_product(product_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or user.user_type not in ('admin', 'franchisee'):
+        return jsonify({'error': 'Access denied'}), 403
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'error': 'Not found'}), 404
+    data = request.get_json() or {}
+    if 'name' in data:        product.name = data['name']
+    if 'price' in data:       product.price = float(data['price'])
+    if 'description' in data: product.description = data['description']
+    if 'category' in data:    product.category = data['category']
+    if 'isPreorder' in data:  product.is_preorder = data['isPreorder']
+    if 'inStock' in data:     product.in_stock = data['inStock']
+    db.session.commit()
+    return jsonify({'product': product.to_dict()})
+
+
+@products_bp.route('/<int:product_id>/image', methods=['POST'])
+@jwt_required()
+def upload_image(product_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or user.user_type not in ('admin', 'franchisee'):
+        return jsonify({'error': 'Access denied'}), 403
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'error': 'Not found'}), 404
+    if 'image' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['image']
+    ext = (file.filename or '').rsplit('.', 1)[-1].lower()
+    if ext not in ALLOWED_EXT:
+        return jsonify({'error': 'Only jpg, png, webp allowed'}), 400
+    upload_dir = os.path.join(current_app.root_path, 'static', 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    file.save(os.path.join(upload_dir, filename))
+    product.image_url = f"/static/uploads/{filename}"
+    db.session.commit()
+    return jsonify({'product': product.to_dict()})
+
+
+@products_bp.route('/<int:product_id>', methods=['DELETE'])
+@jwt_required()
+def delete_product(product_id):
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     if not user or user.user_type != 'admin':
         return jsonify({'error': 'Admin only'}), 403
-
-    if Product.query.count() > 0:
-        return jsonify({'message': 'Already seeded', 'count': Product.query.count()})
-
-    demo = [
-        {'name': 'AVISHU COAT NO.1', 'description': 'Строгое пальто из шерсти. Прямой крой, потайные пуговицы.', 'price': 89000, 'category': 'outerwear', 'is_preorder': False, 'in_stock': True},
-        {'name': 'AVISHU JACKET SS-24', 'description': 'Структурированный жакет. Плечи с подкладом, минимальная фурнитура.', 'price': 67000, 'category': 'jackets', 'is_preorder': False, 'in_stock': True},
-        {'name': 'AVISHU DRESS EDIT', 'description': 'Платье-футляр. Натуральный шёлк, асимметричный воротник.', 'price': 54000, 'category': 'dresses', 'is_preorder': True, 'in_stock': False},
-        {'name': 'AVISHU TROUSERS NO.3', 'description': 'Широкие брюки. Высокая посадка, стрелки, боковые карманы.', 'price': 38000, 'category': 'trousers', 'is_preorder': False, 'in_stock': True},
-        {'name': 'AVISHU BLOUSE ARCHIVE', 'description': 'Блуза из хлопка. Объёмные рукава, скрытые пуговицы.', 'price': 29000, 'category': 'tops', 'is_preorder': True, 'in_stock': False},
-        {'name': 'AVISHU COAT BESPOKE', 'description': 'Пальто на заказ. Индивидуальный крой, 6–8 недель пошива.', 'price': 145000, 'category': 'outerwear', 'is_preorder': True, 'in_stock': False},
-    ]
-
-    for item in demo:
-        p = Product(**item)
-        db.session.add(p)
-
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'error': 'Not found'}), 404
+    product.is_active = False
     db.session.commit()
-    return jsonify({'message': 'Seeded', 'count': len(demo)})
+    return jsonify({'ok': True})

@@ -7,6 +7,59 @@ const useOrderStore = create((set, get) => ({
   wsConnected: false,
   _ws: null,
 
+  cart: [],
+
+  addToCart: (product, qty = 1, desiredDate = null) => {
+    set(s => {
+      const existing = s.cart.find(i => i.product.id === product.id);
+      if (existing) {
+        return { cart: s.cart.map(i => i.product.id === product.id ? { ...i, qty: i.qty + qty } : i) };
+      }
+      return { cart: [...s.cart, { product, qty, desiredDate }] };
+    });
+  },
+
+  removeFromCart: (productId) => {
+    set(s => ({ cart: s.cart.filter(i => i.product.id !== productId) }));
+  },
+
+  setCartQty: (productId, qty) => {
+    if (qty < 1) { get().removeFromCart(productId); return; }
+    set(s => ({ cart: s.cart.map(i => i.product.id === productId ? { ...i, qty } : i) }));
+  },
+
+  clearCart: () => set({ cart: [] }),
+
+  checkoutCart: async () => {
+    const items = get().cart;
+    const results = await Promise.allSettled(
+      items.map(item =>
+        api.orders.create({
+          productId: item.product.id,
+          quantity: item.qty,
+          desiredDate: item.desiredDate || undefined,
+        })
+      )
+    );
+    const succeeded = [];
+    const failed = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') {
+        succeeded.push(r.value.order);
+      } else {
+        failed.push({ product: items[i].product, reason: r.reason?.message || 'Ошибка' });
+      }
+    });
+    if (succeeded.length > 0) {
+      set(s => {
+        const fresh = succeeded.filter(o => !s.orders.find(x => x.id === o.id));
+        return { orders: [...fresh.reverse(), ...s.orders] };
+      });
+      get().clearCart();
+    }
+    return { succeeded, failed };
+  },
+
   fetchOrders: async (params = {}) => {
     set({ loading: true });
     try {
@@ -21,7 +74,11 @@ const useOrderStore = create((set, get) => ({
 
   createOrder: async (payload) => {
     const data = await api.orders.create(payload);
-    set(s => ({ orders: [data.order, ...s.orders] }));
+    set(s => ({
+      orders: s.orders.find(o => o.id === data.order.id)
+        ? s.orders.map(o => o.id === data.order.id ? data.order : o)
+        : [data.order, ...s.orders],
+    }));
     return data.order;
   },
 
@@ -33,7 +90,6 @@ const useOrderStore = create((set, get) => ({
     return data.order;
   },
 
-  // Called by WebSocket events
   _applyOrderEvent: (type, order) => {
     if (type === 'order_new') {
       set(s => ({
@@ -58,7 +114,6 @@ const useOrderStore = create((set, get) => ({
     ws.onopen = () => set({ wsConnected: true });
     ws.onclose = () => {
       set({ wsConnected: false, _ws: null });
-      // Reconnect after 3s
       setTimeout(() => {
         if (localStorage.getItem('access_token')) get().connectWs();
       }, 3000);
