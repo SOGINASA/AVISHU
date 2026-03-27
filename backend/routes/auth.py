@@ -78,7 +78,6 @@ def register():
     if nickname and User.query.filter(db.func.lower(User.nickname) == nickname.lower()).first():
         return jsonify({'error': 'This nickname is already taken'}), 400
 
-    VALID_ROLES = {'client'}
     role = data.get('role', '').strip().lower()
     user_type = role if role in VALID_ROLES else 'client'
 
