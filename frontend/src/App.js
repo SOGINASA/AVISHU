@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import useAuthStore from './stores/useAuthStore';
 import ProtectedRoute from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
@@ -25,7 +25,16 @@ function RoleRouter() {
 
 function AppInit({ children }) {
   const init = useAuthStore(s => s.init);
-  useEffect(() => { init(); }, [init]);
+  const hasInitialized = useRef(false);
+  
+  useEffect(() => {
+    // Only run init once on mount, not on every re-render
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      init();
+    }
+  }, [init]);
+  
   return children;
 }
 

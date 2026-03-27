@@ -69,7 +69,13 @@ def _ensure_admin(app):
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    CORS(app, supports_credentials=True, origins=Config.CORS_ORIGINS)
+    CORS(app, 
+         supports_credentials=True, 
+         origins=Config.CORS_ORIGINS,
+         methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+         expose_headers=['Content-Length', 'X-Request-Id'],
+         max_age=3600)
 
     os.makedirs(DATABASE_DIR, exist_ok=True)
 
@@ -77,6 +83,20 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     sock.init_app(app)
+
+    # Handle CORS preflight requests BEFORE JWT decorators
+    @app.before_request
+    def handle_preflight():
+        if request.method == 'OPTIONS':
+            response = app.make_response(('', 204))
+            # Add CORS headers manually for preflight
+            origin = request.headers.get('Origin')
+            if origin and origin in Config.CORS_ORIGINS:
+                response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+            response.headers['Access-Control-Max-Age'] = '3600'
+            return response
 
     with app.app_context():
         db.create_all()
