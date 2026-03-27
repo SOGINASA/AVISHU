@@ -24,19 +24,41 @@ function authed(path, options = {}) {
 }
 
 export const api = {
+  // ── Auth ──────────────────────────────────────────────────────────────────
   login: (email, password) =>
     req('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
-  register: (fullName, email, password) =>
+  register: (fullName, email, password, role = 'client') =>
     req('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ full_name: fullName, email, password }),
+      body: JSON.stringify({ full_name: fullName, email, password, role }),
     }),
 
   me: () => authed('/api/auth/me'),
 
   oauthStart: (provider) => req(`/api/auth/oauth/start/${provider}`),
 
+  // ── Products ─────────────────────────────────────────────────────────────
+  products: {
+    list: (category) => req(`/api/products/${category ? `?category=${category}` : ''}`),
+    get: (id) => req(`/api/products/${id}`),
+    seed: () => authed('/api/products/seed', { method: 'POST' }),
+  },
+
+  // ── Orders ───────────────────────────────────────────────────────────────
+  orders: {
+    list: (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return authed(`/api/orders/${qs ? `?${qs}` : ''}`);
+    },
+    get: (id) => authed(`/api/orders/${id}`),
+    create: (payload) =>
+      authed('/api/orders/', { method: 'POST', body: JSON.stringify(payload) }),
+    updateStatus: (id, status) =>
+      authed(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  },
+
+  // ── Notifications ─────────────────────────────────────────────────────────
   notifications: {
     list: (page = 1) => authed(`/api/notifications/get?page=${page}`),
     unreadCount: () => authed('/api/notifications/unread-count'),
@@ -51,6 +73,7 @@ export const api = {
       authed('/api/notifications/unsubscribe', { method: 'DELETE', body: JSON.stringify(data) }),
   },
 
+  // ── Admin ─────────────────────────────────────────────────────────────────
   admin: {
     stats: () => authed('/api/admin/stats'),
     users: (page = 1, search = '') =>

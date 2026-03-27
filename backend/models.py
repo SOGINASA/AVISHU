@@ -299,3 +299,88 @@ class Feedback(db.Model):
                 'email': self.user.email or '—',
             }
         return data
+
+
+# ─── Catalog ────────────────────────────────────────────────────────────────
+
+class Product(db.Model):
+    __tablename__ = 'products'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    price = db.Column(db.Float, nullable=False)
+    image_url = db.Column(db.String(500), nullable=True)
+    category = db.Column(db.String(50), nullable=True)
+    is_preorder = db.Column(db.Boolean, default=False)
+    in_stock = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'price': self.price,
+            'imageUrl': self.image_url,
+            'category': self.category,
+            'isPreorder': self.is_preorder,
+            'inStock': self.in_stock,
+        }
+
+
+# ─── Orders ─────────────────────────────────────────────────────────────────
+
+# Status flow: placed → accepted → sewing → ready → delivered
+ORDER_STATUSES = ['placed', 'accepted', 'sewing', 'ready', 'delivered']
+
+
+class Order(db.Model):
+    __tablename__ = 'orders'
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    franchisee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+
+    status = db.Column(db.String(20), nullable=False, default='placed', index=True)
+    quantity = db.Column(db.Integer, default=1)
+    total_price = db.Column(db.Float, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+
+    # For preorders
+    desired_date = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc))
+
+    client = db.relationship('User', foreign_keys=[client_id],
+                             backref=db.backref('orders_as_client', lazy='dynamic'))
+    franchisee = db.relationship('User', foreign_keys=[franchisee_id],
+                                 backref=db.backref('orders_as_franchisee', lazy='dynamic'))
+    product = db.relationship('Product', backref=db.backref('orders', lazy='dynamic'))
+
+    def to_dict(self, include_client=False, include_product=False):
+        data = {
+            'id': self.id,
+            'clientId': self.client_id,
+            'franchiseeId': self.franchisee_id,
+            'productId': self.product_id,
+            'status': self.status,
+            'quantity': self.quantity,
+            'totalPrice': self.total_price,
+            'notes': self.notes,
+            'desiredDate': _utc_iso(self.desired_date),
+            'createdAt': _utc_iso(self.created_at),
+            'updatedAt': _utc_iso(self.updated_at),
+        }
+        if include_client and self.client:
+            data['client'] = {
+                'id': self.client.id,
+                'name': self.client.full_name or self.client.nickname or 'Client',
+                'email': self.client.email or '—',
+            }
+        if include_product and self.product:
+            data['product'] = self.product.to_dict()
+        return data

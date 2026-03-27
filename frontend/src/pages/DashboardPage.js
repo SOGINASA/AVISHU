@@ -6,12 +6,12 @@ import {
   TbBell, TbBellRinging, TbCheck, TbTrash, TbLogout,
   TbShield, TbUser, TbCircleDot, TbBellOff,
 } from 'react-icons/tb';
-import { useAuth } from '../contexts/AuthContext';
+import useAuthStore from '../stores/useAuthStore';
 import { usePush } from '../hooks/usePush';
 import { api, getWsUrl } from '../api';
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const push = usePush();
 

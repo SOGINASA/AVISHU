@@ -72,13 +72,16 @@ def create_app():
     from routes.notifications import notifications_bp
     from routes.feedback import feedback_bp
     from routes.admin import admin_bp
-
+    from routes.products import products_bp
+    from routes.orders import orders_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(oauth_bp, url_prefix='/api/auth/oauth')
     app.register_blueprint(webauthn_bp, url_prefix='/api/auth/webauthn')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(feedback_bp, url_prefix='/api/feedback')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(products_bp, url_prefix='/api/products')
+    app.register_blueprint(orders_bp, url_prefix='/api/orders')
 
     # WebSocket для real-time уведомлений
     @sock.route('/ws/notifications')
@@ -236,4 +239,4 @@ def generate_vapid():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=8000)

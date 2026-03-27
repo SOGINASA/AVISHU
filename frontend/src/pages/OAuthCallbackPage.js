@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import useAuthStore from '../stores/useAuthStore';
 
 export default function OAuthCallbackPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login } = useAuthStore();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -22,7 +22,7 @@ export default function OAuthCallbackPage() {
       try {
         const user = JSON.parse(userJson);
         login({ access_token, refresh_token }, user);
-        navigate('/dashboard', { replace: true });
+        navigate('/app', { replace: true });
       } catch {
         navigate('/login', { replace: true });
       }
@@ -33,17 +33,14 @@ export default function OAuthCallbackPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#18120a] flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
       <div className="flex gap-1.5">
         {[0, 1, 2].map(i => (
-          <div
-            key={i}
-            className="w-2 h-2 bg-amber-600 rounded-full animate-bounce"
-            style={{ animationDelay: `${i * 0.12}s` }}
-          />
+          <div key={i} className="w-2 h-2 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: `${i * 0.12}s` }} />
         ))}
       </div>
-      <div className="text-stone-600 text-[12px] font-mono">Выполняется вход...</div>
+      <div className="text-[10px] tracking-[0.4em] uppercase text-white/30">АВТОРИЗАЦИЯ...</div>
     </div>
   );
 }
