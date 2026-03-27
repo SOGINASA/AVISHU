@@ -4,6 +4,9 @@ from models import db, User, NotificationPreference
 from datetime import datetime, timedelta, timezone
 import re
 
+# Валидные роли пользователей
+VALID_ROLES = ['client', 'franchisee', 'production', 'admin']
+
 auth_bp = Blueprint('auth', __name__)
 
 
