@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GiYarn, GiSewingNeedle, GiScissors, GiSewingString } from 'react-icons/gi';
+import { GiYarn, GiScissors, GiSewingString } from 'react-icons/gi';
 import { TbArrowLeft, TbEye, TbEyeOff, TbArrowRight } from 'react-icons/tb';
+import { SiGoogle } from 'react-icons/si';
 import { FabricPatternBg, StitchLine } from '../components/SewingIcons';
+import { api } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 const float = (delay = 0) => ({
   animate: { y: [0, -10, 0] },
@@ -12,18 +15,47 @@ const float = (delay = 0) => ({
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [focused, setFocused] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  // Error from OAuth callback redirect
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const err = params.get('error');
+    if (err) setError(err);
+  }, [location.search]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const data = await api.login(form.email, form.password);
+      login({ access_token: data.access_token, refresh_token: data.refresh_token }, data.user);
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-      navigate('/');
-    }, 1200);
+    }
+  };
+
+  const handleOAuth = async (provider) => {
+    setError('');
+    setOauthLoading(provider);
+    try {
+      const { redirect_url } = await api.oauthStart(provider);
+      window.location.href = redirect_url;
+    } catch (err) {
+      setError(err.message);
+      setOauthLoading('');
+    }
   };
 
   return (
@@ -39,7 +71,6 @@ export default function LoginPage() {
         <FabricPatternBg />
         <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-amber-900/20 to-transparent" />
 
-        {/* Floating icons */}
         <motion.div className="absolute top-20 right-12 text-amber-900/20" {...float(0)}>
           <GiYarn size={72} />
         </motion.div>
@@ -50,7 +81,6 @@ export default function LoginPage() {
           <GiSewingString size={38} />
         </motion.div>
 
-        {/* Logo */}
         <motion.button
           onClick={() => navigate('/')}
           className="relative z-10 flex items-center gap-2 text-amber-500 hover:text-amber-400 transition-colors w-fit"
@@ -61,7 +91,6 @@ export default function LoginPage() {
           <span className="font-black tracking-[0.2em] text-[13px] uppercase">ShveAI</span>
         </motion.button>
 
-        {/* Content */}
         <div className="relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -82,7 +111,6 @@ export default function LoginPage() {
           </motion.div>
         </div>
 
-        {/* Bottom */}
         <div className="relative z-10 text-stone-700 text-[11px] font-mono">
           Безопасное соединение · TLS 1.3
         </div>
@@ -95,7 +123,6 @@ export default function LoginPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.15 }}
       >
-        {/* Mobile logo */}
         <motion.button
           onClick={() => navigate('/')}
           className="flex lg:hidden items-center gap-2 text-amber-500 mb-10"
@@ -130,9 +157,7 @@ export default function LoginPage() {
           >
             {/* Email */}
             <div>
-              <label className="block text-[11px] text-stone-500 uppercase tracking-[0.15em] mb-2 font-mono">
-                Email
-              </label>
+              <label className="block text-[11px] text-stone-500 uppercase tracking-[0.15em] mb-2 font-mono">Email</label>
               <motion.div
                 className={`relative border rounded-xl transition-colors duration-200 ${
                   focused === 'email' ? 'border-amber-600/70 bg-amber-950/15' : 'border-[#2e2010] bg-[#1f1610]'
@@ -189,12 +214,22 @@ export default function LoginPage() {
               </motion.div>
             </div>
 
-            <label className="flex items-center gap-2.5 cursor-pointer group">
+            <label className="flex items-center gap-2.5 cursor-pointer">
               <input type="checkbox" className="accent-amber-600 w-3.5 h-3.5" />
               <span className="text-stone-500 text-[13px]">Запомнить меня</span>
             </label>
 
             <StitchLine className="text-[#2e2010] pt-2" />
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-400 text-[13px] text-center py-2 px-3 rounded-lg bg-red-950/30 border border-red-900/40"
+              >
+                {error}
+              </motion.div>
+            )}
 
             {/* Submit */}
             <motion.button
@@ -202,38 +237,24 @@ export default function LoginPage() {
               disabled={loading}
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.97 }}
-              className="group w-full relative py-3.5 bg-amber-600 text-[#18120a] font-bold rounded-xl hover:bg-amber-500 transition-colors shadow-[0_8px_24px_-6px_rgba(180,120,40,0.45)] text-[15px] overflow-hidden"
+              className="group w-full relative py-3.5 bg-amber-600 text-[#18120a] font-bold rounded-xl hover:bg-amber-500 transition-colors shadow-[0_8px_24px_-6px_rgba(180,120,40,0.45)] text-[15px] overflow-hidden disabled:opacity-70"
             >
               <AnimatePresence mode="wait">
                 {loading ? (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center justify-center gap-2"
-                  >
-                    <motion.div
-                      className="flex gap-1"
-                    >
-                      {[0,1,2].map(i => (
-                        <motion.div
-                          key={i}
-                          className="w-1.5 h-1.5 bg-[#18120a] rounded-full"
+                  <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="flex items-center justify-center gap-2">
+                    <div className="flex gap-1">
+                      {[0, 1, 2].map(i => (
+                        <motion.div key={i} className="w-1.5 h-1.5 bg-[#18120a] rounded-full"
                           animate={{ y: [0, -5, 0] }}
                           transition={{ duration: 0.6, delay: i * 0.12, repeat: Infinity }}
                         />
                       ))}
-                    </motion.div>
+                    </div>
                   </motion.div>
                 ) : (
-                  <motion.span
-                    key="text"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center justify-center gap-2"
-                  >
+                  <motion.span key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="flex items-center justify-center gap-2">
                     Войти
                     <TbArrowRight className="group-hover:translate-x-1 transition-transform" />
                   </motion.span>
@@ -241,20 +262,26 @@ export default function LoginPage() {
               </AnimatePresence>
             </motion.button>
 
+            {/* Divider */}
             <div className="flex items-center gap-3 text-stone-700">
               <div className="flex-1 h-px bg-[#2e2010]" />
-              <span className="text-[11px] font-mono">или</span>
+              <span className="text-[11px] font-mono">или войдите через</span>
               <div className="flex-1 h-px bg-[#2e2010]" />
             </div>
 
+            {/* OAuth buttons */}
             <motion.button
               type="button"
-              onClick={() => navigate('/')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full py-3.5 border border-[#2e2010] text-stone-500 rounded-xl hover:border-amber-800/40 hover:text-[#eddcba] transition-all text-[13px]"
+              onClick={() => handleOAuth('google')}
+              disabled={!!oauthLoading}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              className="w-full flex items-center justify-center gap-2 py-3 border border-[#2e2010] text-stone-400 rounded-xl hover:border-amber-800/40 hover:text-[#eddcba] transition-all text-[13px] disabled:opacity-50"
             >
-              Демо-режим
+              {oauthLoading === 'google'
+                ? <motion.div className="w-3.5 h-3.5 border-2 border-stone-500 border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
+                : <SiGoogle size={14} />
+              }
+              Войти через Google
             </motion.button>
           </motion.form>
 

@@ -12,7 +12,7 @@ build/
 .env
 *.db
 *.sqlite3
-database/
+/backend/database/
 
 .scheduler_lock
 .notification_lock
@@ -45,6 +45,7 @@ env/
 
 # misc
 .DS_Store
+._*
 .env.local
 .env.development.local
 .env.test.local

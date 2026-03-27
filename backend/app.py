@@ -31,6 +31,25 @@ jwt = JWTManager()
 sock = Sock()
 
 
+def _ensure_admin(app):
+    from datetime import datetime, timezone
+    email = app.config['ADMIN_EMAIL'].strip().lower()
+    if User.query.filter_by(email=email).first():
+        return
+    admin = User(
+        email=email,
+        full_name=app.config['ADMIN_FULL_NAME'],
+        user_type='admin',
+        is_active=True,
+        is_verified=True,
+        last_login=datetime.now(timezone.utc),
+    )
+    admin.set_password(app.config['ADMIN_PASSWORD'])
+    db.session.add(admin)
+    db.session.commit()
+    print(f'[app] Default admin created: {email}')
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -45,6 +64,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _ensure_admin(app)
 
     from routes import auth_bp
     from routes.oauth import oauth_bp

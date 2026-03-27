@@ -55,8 +55,9 @@ class Config:
     FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
     # Admin
-    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@gmail.com')
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin')
+    ADMIN_FULL_NAME = os.environ.get('ADMIN_FULL_NAME', 'Administrator')
 
 
 class DevelopmentConfig(Config):
