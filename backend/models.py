@@ -355,10 +355,15 @@ class Order(db.Model):
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
 
+    seamstress_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    claimed_at = db.Column(db.DateTime, nullable=True)
+
     client = db.relationship('User', foreign_keys=[client_id],
                              backref=db.backref('orders_as_client', lazy='dynamic'))
     franchisee = db.relationship('User', foreign_keys=[franchisee_id],
                                  backref=db.backref('orders_as_franchisee', lazy='dynamic'))
+    seamstress = db.relationship('User', foreign_keys=[seamstress_id],
+                                 backref=db.backref('orders_as_seamstress', lazy='dynamic'))
     product = db.relationship('Product', backref=db.backref('orders', lazy='dynamic'))
 
     def to_dict(self, include_client=False, include_product=False):
@@ -367,6 +372,8 @@ class Order(db.Model):
             'clientId': self.client_id,
             'franchiseeId': self.franchisee_id,
             'productId': self.product_id,
+            'seamstressId': self.seamstress_id,
+            'claimedAt': _utc_iso(self.claimed_at),
             'status': self.status,
             'quantity': self.quantity,
             'totalPrice': self.total_price,
@@ -381,6 +388,59 @@ class Order(db.Model):
                 'name': self.client.full_name or self.client.nickname or 'Client',
                 'email': self.client.email or '—',
             }
+            if self.seamstress:
+                data['seamstress'] = {'id': self.seamstress.id, 'name': self.seamstress.full_name or '—'}
         if include_product and self.product:
             data['product'] = self.product.to_dict()
+        return data
+
+
+CUSTOM_ORDER_STATUSES = ['pending_review', 'pending_payment', 'placed', 'accepted', 'sewing', 'ready', 'delivered']
+
+
+class CustomOrder(db.Model):
+    __tablename__ = 'custom_orders'
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    seamstress_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    photo_url = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(30), default='pending_review', nullable=False, index=True)
+    price = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    claimed_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc))
+    client = db.relationship('User', foreign_keys=[client_id], backref=db.backref('custom_orders_as_client', lazy='dynamic'))
+    manager = db.relationship('User', foreign_keys=[manager_id])
+    seamstress = db.relationship('User', foreign_keys=[seamstress_id])
+
+    def to_dict(self, include_client=False):
+        data = {
+            'id': self.id,
+            'clientId': self.client_id,
+            'managerId': self.manager_id,
+            'seamstressId': self.seamstress_id,
+            'title': self.title,
+            'description': self.description,
+            'photoUrl': self.photo_url,
+            'status': self.status,
+            'price': self.price,
+            'notes': self.notes,
+            'claimedAt': _utc_iso(self.claimed_at),
+            'createdAt': _utc_iso(self.created_at),
+            'updatedAt': _utc_iso(self.updated_at),
+            'isCustom': True,
+        }
+        if include_client and self.client:
+            data['client'] = {
+                'id': self.client.id,
+                'name': self.client.full_name or self.client.nickname or 'Client',
+                'email': self.client.email or '—',
+            }
+        if self.seamstress:
+            data['seamstress'] = {'id': self.seamstress.id, 'name': self.seamstress.full_name or '—'}
         return data

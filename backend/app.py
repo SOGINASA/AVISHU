@@ -31,6 +31,22 @@ jwt = JWTManager()
 sock = Sock()
 
 
+def _run_migrations(app):
+    with app.app_context():
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        if 'orders' not in inspector.get_table_names():
+            return
+        existing = {c['name'] for c in inspector.get_columns('orders')}
+        with db.engine.connect() as conn:
+            if 'seamstress_id' not in existing:
+                conn.execute(text('ALTER TABLE orders ADD COLUMN seamstress_id INTEGER REFERENCES users(id)'))
+                conn.commit()
+            if 'claimed_at' not in existing:
+                conn.execute(text('ALTER TABLE orders ADD COLUMN claimed_at DATETIME'))
+                conn.commit()
+
+
 def _ensure_admin(app):
     from datetime import datetime, timezone
     email = app.config['ADMIN_EMAIL'].strip().lower()
@@ -64,6 +80,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _run_migrations(app)
         _ensure_admin(app)
 
     from routes import auth_bp
@@ -74,6 +91,7 @@ def create_app():
     from routes.admin import admin_bp
     from routes.products import products_bp
     from routes.orders import orders_bp
+    from routes.custom_orders import custom_orders_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(oauth_bp, url_prefix='/api/auth/oauth')
     app.register_blueprint(webauthn_bp, url_prefix='/api/auth/webauthn')
@@ -82,6 +100,7 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(products_bp, url_prefix='/api/products')
     app.register_blueprint(orders_bp, url_prefix='/api/orders')
+    app.register_blueprint(custom_orders_bp, url_prefix='/api/custom-orders')
 
     # WebSocket для real-time уведомлений
     @sock.route('/ws/notifications')

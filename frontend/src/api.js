@@ -92,6 +92,34 @@ export const api = {
       authed('/api/orders/', { method: 'POST', body: JSON.stringify(payload) }),
     updateStatus: (id, status) =>
       authed(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    claim: (id) => authed(`/api/orders/${id}/claim`, { method: 'POST' }),
+    unclaim: (id) => authed(`/api/orders/${id}/unclaim`, { method: 'POST' }),
+  },
+
+  // ── Custom Orders ─────────────────────────────────────────────────────────
+  customOrders: {
+    list: () => authed('/api/custom-orders/'),
+    get: (id) => authed(`/api/custom-orders/${id}`),
+    create: (data) => authed('/api/custom-orders/', { method: 'POST', body: JSON.stringify(data) }),
+    uploadPhoto: (id, file) => {
+      const body = new FormData();
+      body.append('photo', file);
+      const token = localStorage.getItem('access_token');
+      return fetch(`${BASE_URL}/api/custom-orders/${id}/photo`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body,
+      }).then(async r => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        return d;
+      });
+    },
+    setPrice: (id, price) => authed(`/api/custom-orders/${id}/price`, { method: 'PATCH', body: JSON.stringify({ price }) }),
+    pay: (id) => authed(`/api/custom-orders/${id}/pay`, { method: 'POST' }),
+    claim: (id) => authed(`/api/custom-orders/${id}/claim`, { method: 'POST' }),
+    unclaim: (id) => authed(`/api/custom-orders/${id}/unclaim`, { method: 'POST' }),
+    updateStatus: (id, status) => authed(`/api/custom-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   },
 
   // ── Notifications ─────────────────────────────────────────────────────────
@@ -118,5 +146,6 @@ export const api = {
     deactivate: (id) => authed(`/api/admin/users/${id}/deactivate`, { method: 'POST' }),
     feedback: (page = 1) => authed(`/api/admin/feedback?page=${page}`),
     auditLogs: (page = 1) => authed(`/api/admin/audit-logs?page=${page}&per_page=25`),
+    createUser: (data) => authed('/api/admin/users', { method: 'POST', body: JSON.stringify(data) }),
   },
 };

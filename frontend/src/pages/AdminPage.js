@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
-import { api } from '../api';
+import { api, BASE_URL } from '../api';
 
 const NEXT = { placed: 'accepted', accepted: 'sewing', sewing: 'ready', ready: 'delivered' };
 
@@ -44,6 +44,10 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'production' });
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createErr, setCreateErr] = useState('');
 
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -101,6 +105,25 @@ export default function AdminPage() {
     finally { setBusy(null); }
   };
 
+  const createUser = async (e) => {
+    e.preventDefault();
+    if (!newUser.full_name || !newUser.email || !newUser.password) {
+      setCreateErr('Заполните все поля'); return;
+    }
+    setCreateErr('');
+    setCreateBusy(true);
+    try {
+      await api.admin.createUser(newUser);
+      setNewUser({ full_name: '', email: '', password: '', role: 'production' });
+      setShowCreateUser(false);
+      loadUsers();
+    } catch (e) {
+      setCreateErr(e.message);
+    } finally {
+      setCreateBusy(false);
+    }
+  };
+
   const toggleUser = async (u) => {
     try {
       if (u.is_active) await api.admin.deactivate(u.id);
@@ -113,7 +136,7 @@ export default function AdminPage() {
     setEditingId(p.id);
     setEditForm({ name: p.name, price: String(p.price), category: p.category || 'outerwear', description: p.description || '', isPreorder: p.isPreorder || false, inStock: p.inStock !== false });
     setEditImageFile(null);
-    setEditImagePreview(p.imageUrl ? `${require('../api').BASE_URL}${p.imageUrl}` : null);
+    setEditImagePreview(p.imageUrl ? `${BASE_URL}${p.imageUrl}` : null);
     setEditErr('');
   };
 
@@ -422,7 +445,7 @@ export default function AdminPage() {
                   <div key={p.id}>
                     <div className="py-4 flex items-center gap-3">
                       {p.imageUrl && (
-                        <img src={`${require('../api').BASE_URL}${p.imageUrl}`} alt=""
+                        <img src={`${BASE_URL}${p.imageUrl}`} alt=""
                           className="w-8 h-11 object-cover flex-shrink-0 border border-white/8" />
                       )}
                       <div className="flex-1 min-w-0">

@@ -97,7 +97,14 @@ def list_orders():
 
     if user.user_type == 'client':
         query = Order.query.filter_by(client_id=user_id)
-    elif user.user_type in ('franchisee', 'production', 'admin'):
+    elif user.user_type == 'production':
+        query = Order.query.filter(
+            db.or_(
+                db.and_(Order.status == 'accepted', db.or_(Order.seamstress_id == None, Order.seamstress_id == user_id)),
+                Order.seamstress_id == user_id
+            )
+        )
+    elif user.user_type in ('franchisee', 'admin'):
         query = Order.query
     else:
         query = Order.query.filter_by(client_id=user_id)
@@ -147,6 +154,9 @@ def update_status(order_id):
     if not order:
         return jsonify({'error': 'Order not found'}), 404
 
+    if user.user_type == 'production' and order.seamstress_id != user_id:
+        return jsonify({'error': 'Claim this order first'}), 403
+
     data = request.get_json()
     new_status = data.get('status')
 
@@ -173,3 +183,41 @@ def update_status(order_id):
         'order': order.to_dict(include_client=True, include_product=True),
         'transition': f'{old_status} → {new_status}',
     })
+
+
+@orders_bp.route('/<int:order_id>/claim', methods=['POST'])
+@jwt_required()
+def claim_order(order_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or user.user_type != 'production':
+        return jsonify({'error': 'Production only'}), 403
+    order = Order.query.get(order_id)
+    if not order or order.status != 'accepted':
+        return jsonify({'error': 'Order not available'}), 400
+    if order.seamstress_id and order.seamstress_id != user_id:
+        return jsonify({'error': 'Already claimed'}), 409
+    order.seamstress_id = user_id
+    order.claimed_at = datetime.now(timezone.utc)
+    order.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+    _broadcast_order(order, 'order_updated')
+    return jsonify({'order': order.to_dict(include_client=True, include_product=True)})
+
+
+@orders_bp.route('/<int:order_id>/unclaim', methods=['POST'])
+@jwt_required()
+def unclaim_order(order_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or user.user_type != 'production':
+        return jsonify({'error': 'Production only'}), 403
+    order = Order.query.get(order_id)
+    if not order or order.seamstress_id != user_id:
+        return jsonify({'error': 'Not your order'}), 403
+    order.seamstress_id = None
+    order.claimed_at = None
+    order.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+    _broadcast_order(order, 'order_updated')
+    return jsonify({'order': order.to_dict(include_client=True, include_product=True)})

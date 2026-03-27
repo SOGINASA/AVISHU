@@ -12,12 +12,22 @@ const STEPS = [
   { key: 'delivered', label: 'Доставлен', desc: 'Передано клиенту' },
 ];
 
+const CUSTOM_STEPS = [
+  { key: 'pending_review',  label: 'На рассмотрении', desc: 'Менеджер изучает заказ' },
+  { key: 'pending_payment', label: 'Ожидает оплаты',  desc: 'Менеджер назначил цену' },
+  { key: 'placed',          label: 'Оформлен',         desc: 'Ожидает подтверждения' },
+  { key: 'accepted',        label: 'Принят',           desc: 'Передан в производство' },
+  { key: 'sewing',          label: 'Пошив',            desc: 'Изделие шьётся' },
+  { key: 'ready',           label: 'Готово',           desc: 'Готово к выдаче' },
+  { key: 'delivered',       label: 'Доставлен',        desc: 'Передано клиенту' },
+];
+
 const fmt = (n) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'KZT', maximumFractionDigits: 0 }).format(n);
 
 const fmtDate = (s) =>
   s ? new Date(s).toLocaleString('ru-RU', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
-// for deploy3
+
 const CAT_RU = {
   outerwear: 'Верхняя одежда',
   jackets:   'Жакеты',
@@ -310,6 +320,216 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
   );
 }
 
+function CustomOrderModal({ onClose, onDone }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { const t = setTimeout(() => setOpen(true), 15); return () => clearTimeout(t); }, []);
+  const close = () => { if (busy) return; setOpen(false); setTimeout(onClose, 280); };
+
+  const submit = async () => {
+    if (!title.trim()) { setErr('Укажите название'); return; }
+    setErr('');
+    setBusy(true);
+    try {
+      const d = await api.customOrders.create({ title: title.trim(), description: description.trim() || undefined });
+      if (photo) {
+        try { await api.customOrders.uploadPhoto(d.order.id, photo); } catch {}
+      }
+      onDone(d.order);
+      setOpen(false);
+      setTimeout(onClose, 280);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
+      onClick={close}>
+      <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+        onClick={e => e.stopPropagation()}>
+        <div className="p-7 space-y-5">
+          <div>
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">Свой заказ</p>
+            <p className="text-xs text-white/35">Опишите что хотите пошить. Менеджер свяжется с вами и назначит цену.</p>
+          </div>
+
+          <div>
+            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Название *</p>
+            <input value={title} onChange={e => setTitle(e.target.value)}
+              placeholder="Напр: Пальто с поясом, размер M"
+              className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+          </div>
+
+          <div>
+            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Детали</p>
+            <textarea value={description} onChange={e => setDescription(e.target.value)}
+              placeholder="Материал, цвет, особые пожелания..."
+              rows={3}
+              className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15 resize-none" />
+          </div>
+
+          <div>
+            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Фото (опционально)</p>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <span className="border border-white/12 group-hover:border-white/30 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">
+                {photo ? photo.name : 'Прикрепить'}
+              </span>
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setPhoto(f);
+                  setPhotoPreview(URL.createObjectURL(f));
+                }} />
+              {photoPreview && <img src={photoPreview} alt="" className="h-12 w-9 object-cover border border-white/10" />}
+            </label>
+          </div>
+
+          {err && <p className="text-xs text-red-400/80">{err}</p>}
+
+          <div className="flex gap-2.5">
+            <button onClick={close}
+              className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 hover:border-white/20 transition-colors">
+              ←
+            </button>
+            <button onClick={submit} disabled={busy}
+              className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors disabled:opacity-40">
+              {busy ? '...' : 'Отправить заказ'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomPayModal({ order, onClose, onDone }) {
+  const [step, setStep] = useState('card');
+  const [cardNum, setCardNum] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [err, setErr] = useState('');
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { const t = setTimeout(() => setOpen(true), 15); return () => clearTimeout(t); }, []);
+
+  const close = () => { if (step === 'processing') return; setOpen(false); setTimeout(onClose, 280); };
+
+  const fmtNum = v => v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})(?=.)/g, '$1 ');
+  const fmtExp = v => { const d = v.replace(/\D/g, '').slice(0, 4); return d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; };
+  const expOk = e => {
+    const [mm, yy] = e.split('/');
+    if (!mm || !yy || yy.length < 2) return false;
+    const now = new Date();
+    return new Date(2000 + parseInt(yy), parseInt(mm) - 1, 28) >= new Date(now.getFullYear(), now.getMonth(), 1);
+  };
+
+  const pay = async () => {
+    if (cardNum.replace(/\s/g, '').length < 16) { setErr('Введите полный номер карты'); return; }
+    if (!expOk(expiry)) { setErr('Срок действия карты истёк или введён неверно'); return; }
+    if (cvv.length < 3) { setErr('Введите CVV'); return; }
+    setErr('');
+    setStep('processing');
+    await new Promise(r => setTimeout(r, 2400));
+    try {
+      const d = await api.customOrders.pay(order.id);
+      onDone(d.order);
+      setStep('success');
+      setTimeout(() => { setOpen(false); setTimeout(onClose, 280); }, 3000);
+    } catch (e) {
+      setErr(e.message);
+      setStep('card');
+    }
+  };
+
+  const fmtPrice = (n) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'KZT', maximumFractionDigits: 0 }).format(n);
+
+  return (
+    <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
+      onClick={close}>
+      <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+        onClick={e => e.stopPropagation()}>
+
+        {step === 'card' && (
+          <div className="p-7">
+            <div className="mb-6">
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">Оплата заказа</p>
+              <p className="text-sm font-black uppercase tracking-wide mb-2">{order.title}</p>
+              <p className="text-2xl font-black">{fmtPrice(order.price)}</p>
+            </div>
+            <div className="space-y-5 mb-6">
+              <div>
+                <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Номер карты</p>
+                <input value={cardNum} onChange={e => setCardNum(fmtNum(e.target.value))}
+                  placeholder="0000 0000 0000 0000" inputMode="numeric"
+                  className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-base font-mono tracking-[0.15em] outline-none focus:border-white/45 transition-colors placeholder-white/12" />
+              </div>
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Срок</p>
+                  <input value={expiry} onChange={e => setExpiry(fmtExp(e.target.value))}
+                    placeholder="ММ/ГГ" inputMode="numeric"
+                    className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm font-mono outline-none focus:border-white/45 transition-colors placeholder-white/12" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">CVV</p>
+                  <input value={cvv} onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                    placeholder="•••" type="password" inputMode="numeric"
+                    className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm font-mono outline-none focus:border-white/45 transition-colors placeholder-white/12" />
+                </div>
+              </div>
+            </div>
+            {err && <p className="text-xs text-red-400/80 mb-4">{err}</p>}
+            <div className="flex gap-2.5">
+              <button onClick={close}
+                className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 hover:border-white/20 transition-colors">←</button>
+              <button onClick={pay}
+                className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors">
+                Оплатить · {fmtPrice(order.price)}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'processing' && (
+          <div className="py-20 flex flex-col items-center gap-8">
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 border-2 border-white/10 rounded-full" />
+              <div className="absolute inset-0 border-2 border-transparent border-t-white rounded-full animate-spin" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-black uppercase tracking-[0.35em]">Обработка</p>
+              <p className="text-[10px] text-white/30 mt-2 tracking-wider">Пожалуйста, подождите</p>
+            </div>
+          </div>
+        )}
+
+        {step === 'success' && (
+          <div className="py-12 px-7 flex flex-col items-center gap-5">
+            <div className="w-14 h-14 border-2 border-white flex items-center justify-center">
+              <span className="text-xl font-black">✓</span>
+            </div>
+            <div className="text-center">
+              <p className="text-base font-black uppercase tracking-[0.25em] mb-1">Оплачено</p>
+              <p className="text-sm text-white/50">{order.title}</p>
+              <p className="text-2xl font-black mt-2">{fmtPrice(order.price)}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ClientPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -321,11 +541,15 @@ export default function ClientPage() {
   const [loading, setLoading] = useState(true);
   const [checkout, setCheckout] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [customOrders, setCustomOrders] = useState([]);
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customPayOrder, setCustomPayOrder] = useState(null);
 
   useEffect(() => {
     connectWs();
     fetchOrders();
     api.products.list().then(d => setProducts(d.products || [])).finally(() => setLoading(false));
+    api.customOrders.list().then(d => setCustomOrders(d.orders || [])).catch(() => {});
     return () => disconnectWs();
   }, []);
 
@@ -335,6 +559,11 @@ export default function ClientPage() {
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const totalPts = mine.length * 100;
+
+  const allOrders = [
+    ...mine.map(o => ({ ...o, isCustom: false })),
+    ...customOrders.map(o => ({ ...o, isCustom: true })),
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
     <div className="min-h-screen bg-black text-white max-w-[430px] mx-auto">
@@ -350,7 +579,7 @@ export default function ClientPage() {
         {[
           { id: 'shop',   label: 'Каталог' },
           { id: 'cart',   label: `Корзина${cartCount ? ` · ${cartCount}` : ''}` },
-          { id: 'orders', label: `Заказы${mine.length ? ` · ${mine.length}` : ''}` },
+          { id: 'orders', label: `Заказы${allOrders.length ? ` · ${allOrders.length}` : ''}` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex-1 py-4 text-[11px] font-bold uppercase tracking-[0.15em] transition-colors border-b-2 ${
@@ -379,6 +608,15 @@ export default function ClientPage() {
               ))}
             </div>
           )}
+          <div className="mt-10 pt-8 border-t border-white/8">
+            <button onClick={() => setShowCustomForm(true)}
+              className="w-full border border-white/12 py-5 text-xs font-black uppercase tracking-[0.3em] text-white/40 hover:border-white/30 hover:text-white/70 transition-all">
+              + Заказать своё изделие
+            </button>
+            <p className="text-[9px] text-center text-white/20 mt-3 tracking-[0.2em] uppercase">
+              Индивидуальный пошив по вашим параметрам
+            </p>
+          </div>
         </div>
       )}
 
@@ -460,7 +698,7 @@ export default function ClientPage() {
 
           {ordersLoading ? (
             <div className="py-16 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
-          ) : mine.length === 0 ? (
+          ) : allOrders.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm text-white/25 mb-6">Заказов пока нет</p>
               <button onClick={() => setTab('shop')}
@@ -470,39 +708,71 @@ export default function ClientPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {mine.map(o => {
-                const idx = STEPS.findIndex(s => s.key === o.status);
-                const step = STEPS[idx] || STEPS[0];
-                const expanded = expandedOrder === o.id;
+              {allOrders.map(o => {
+                const steps = o.isCustom ? CUSTOM_STEPS : STEPS;
+                const idx = steps.findIndex(s => s.key === o.status);
+                const step = steps[idx] || steps[0];
+                const expanded = expandedOrder === (o.isCustom ? 'c' + o.id : o.id);
+                const toggleKey = o.isCustom ? 'c' + o.id : o.id;
                 return (
-                  <div key={o.id} className="border border-white/8 bg-[#080808] overflow-hidden">
-                    <button className="w-full text-left" onClick={() => setExpandedOrder(expanded ? null : o.id)}>
+                  <div key={toggleKey} className="border border-white/8 bg-[#080808] overflow-hidden">
+                    <button className="w-full text-left" onClick={() => setExpandedOrder(expanded ? null : toggleKey)}>
                       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/6">
-                        <Thumb imageUrl={o.product?.imageUrl} name={o.product?.name || ''}
-                          className="w-10 h-14 flex-shrink-0" />
+                        {!o.isCustom && (
+                          <Thumb imageUrl={o.product?.imageUrl} name={o.product?.name || ''}
+                            className="w-10 h-14 flex-shrink-0" />
+                        )}
+                        {o.isCustom && (
+                          <div className="w-10 h-14 flex-shrink-0 bg-[#111] flex items-center justify-center border border-white/8">
+                            <span className="text-white/20 text-xs font-black">C</span>
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
+                          {o.isCustom && (
+                            <span className="text-[8px] font-bold tracking-[0.3em] uppercase text-white/25 border border-white/10 px-1.5 py-0.5 mr-1">Своё</span>
+                          )}
                           <p className="text-sm font-black uppercase tracking-wide leading-tight truncate">
-                            {o.product?.name || `Заказ #${o.id}`}
+                            {o.isCustom ? o.title : (o.product?.name || `Заказ #${o.id}`)}
                           </p>
                           <p className="text-[10px] text-white/30 mt-0.5">
                             #{o.id} · {new Date(o.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })}
-                            {o.quantity > 1 ? ` · ${o.quantity} шт.` : ''}
+                            {!o.isCustom && o.quantity > 1 ? ` · ${o.quantity} шт.` : ''}
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-black">{fmt(o.totalPrice)}</p>
+                          {!o.isCustom && <p className="text-sm font-black">{fmt(o.totalPrice)}</p>}
+                          {o.isCustom && o.price && <p className="text-sm font-black">{fmt(o.price)}</p>}
                           <p className="text-[9px] text-white/25 mt-1">{expanded ? '▲' : '▼'}</p>
                         </div>
                       </div>
                     </button>
 
+                    {o.isCustom && o.status === 'pending_payment' && (
+                      <div className="px-4 py-3 bg-white/[0.03] border-b border-white/6 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-white/70">Назначена цена: {fmt(o.price)}</p>
+                          <p className="text-[10px] text-white/35">Оплатите для продолжения</p>
+                        </div>
+                        <button onClick={() => setCustomPayOrder(o)}
+                          className="bg-white text-black text-[10px] font-black uppercase tracking-[0.15em] px-4 py-2 hover:bg-white/92 transition-colors">
+                          Оплатить
+                        </button>
+                      </div>
+                    )}
+
+                    {o.isCustom && o.status === 'pending_review' && (
+                      <div className="px-4 py-2.5 bg-white/[0.02] border-b border-white/6">
+                        <p className="text-[10px] text-white/35">Ожидает оценки менеджера</p>
+                      </div>
+                    )}
+
                     <div className="px-4 py-4">
                       <div className="relative mb-3">
                         <div className="absolute top-[3px] left-0 right-0 h-px bg-white/8" />
                         <div className="absolute top-[3px] left-0 h-px bg-white/35 transition-all duration-500"
-                          style={{ width: `${idx / (STEPS.length - 1) * 100}%` }} />
+                          style={{ width: `${idx / (steps.length - 1) * 100}%` }} />
                         <div className="relative flex justify-between">
-                          {STEPS.map((s, i) => (
+                          {steps.map((s, i) => (
                             <div key={s.key} className={`w-[7px] h-[7px] rounded-full border transition-all ${
                               i <= idx ? 'bg-white border-white' : 'bg-black border-white/18'
                             }`} />
@@ -520,10 +790,16 @@ export default function ClientPage() {
 
                     {expanded && (
                       <div className="px-4 pb-4 pt-2 border-t border-white/6 space-y-2.5">
-                        {o.product?.description && (
+                        {o.isCustom && o.photoUrl && (
+                          <img src={`${BASE_URL}${o.photoUrl}`} alt="" className="w-full max-h-40 object-cover border border-white/8" />
+                        )}
+                        {o.isCustom && o.description && (
+                          <p className="text-xs text-white/35 leading-relaxed">{o.description}</p>
+                        )}
+                        {!o.isCustom && o.product?.description && (
                           <p className="text-xs text-white/35 leading-relaxed">{o.product.description}</p>
                         )}
-                        {o.product?.category && (
+                        {!o.isCustom && o.product?.category && (
                           <p className="text-[10px] text-white/25">
                             {CAT_RU[o.product.category] || o.product.category}
                           </p>
@@ -537,7 +813,7 @@ export default function ClientPage() {
                           <p className="text-[10px] text-white/30">Примечание: {o.notes}</p>
                         )}
                         <div className="pt-2 space-y-1">
-                          {STEPS.map((s, i) => (
+                          {steps.map((s, i) => (
                             <div key={s.key} className={`flex items-center gap-3 ${i > idx ? 'opacity-25' : ''}`}>
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i <= idx ? 'bg-white' : 'bg-white/20'}`} />
                               <p className={`text-[10px] font-semibold uppercase tracking-wider ${i === idx ? 'text-white' : 'text-white/40'}`}>
@@ -574,6 +850,28 @@ export default function ClientPage() {
           items={cart}
           onClose={() => setCheckout(false)}
           onSuccess={() => { setCheckout(false); setTab('orders'); }}
+        />
+      )}
+
+      {showCustomForm && (
+        <CustomOrderModal
+          onClose={() => setShowCustomForm(false)}
+          onDone={(order) => {
+            setCustomOrders(cs => [order, ...cs]);
+            setShowCustomForm(false);
+            setTab('orders');
+          }}
+        />
+      )}
+
+      {customPayOrder && (
+        <CustomPayModal
+          order={customPayOrder}
+          onClose={() => setCustomPayOrder(null)}
+          onDone={(updated) => {
+            setCustomOrders(cs => cs.map(c => c.id === updated.id ? updated : c));
+            setCustomPayOrder(null);
+          }}
         />
       )}
     </div>

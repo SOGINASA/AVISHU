@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Feedback, AuditLog
+from models import db, User, Feedback, AuditLog, Order
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__)
@@ -132,21 +132,49 @@ def list_audit_logs():
     })
 
 
+@admin_bp.route('/users', methods=['POST'])
+@admin_required
+def create_user():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    full_name = (data.get('full_name') or '').strip()
+    password = data.get('password') or ''
+    role = (data.get('role') or '').strip().lower()
+
+    VALID_ROLES = {'client', 'franchisee', 'production', 'admin'}
+    if role not in VALID_ROLES:
+        return jsonify({'error': 'Invalid role'}), 400
+    if not email or not password or not full_name:
+        return jsonify({'error': 'email, full_name, password required'}), 400
+    if len(password) < 6:
+        return jsonify({'error': 'Password min 6 chars'}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'Email already exists'}), 400
+
+    user = User(
+        email=email,
+        full_name=full_name,
+        user_type=role,
+        is_active=True,
+        is_verified=True,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'user': user.to_dict(include_sensitive=True)}), 201
+
+
 @admin_bp.route('/stats', methods=['GET'])
 @admin_required
 def get_stats():
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
-    verified_users = User.query.filter_by(is_verified=True).count()
     unread_feedback = Feedback.query.filter_by(is_read=False).count()
+    total_orders = Order.query.count()
+    new_orders = Order.query.filter_by(status='placed').count()
 
     return jsonify({
-        'users': {
-            'total': total_users,
-            'active': active_users,
-            'verified': verified_users,
-        },
-        'feedback': {
-            'unread': unread_feedback,
-        },
+        'users': {'total': total_users, 'active': active_users},
+        'feedback': {'unread': unread_feedback},
+        'orders': {'total': total_orders, 'new': new_orders},
     })
