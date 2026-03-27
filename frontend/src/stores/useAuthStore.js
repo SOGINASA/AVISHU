@@ -21,7 +21,7 @@ const useAuthStore = create((set, get) => ({
   login: (tokens, userData) => {
     localStorage.setItem('access_token', tokens.access_token);
     if (tokens.refresh_token) localStorage.setItem('refresh_token', tokens.refresh_token);
-    set({ user: userData });
+    set({ user: userData, loading: false });
   },
 
   logout: () => {
