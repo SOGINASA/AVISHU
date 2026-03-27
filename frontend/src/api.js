@@ -38,6 +38,26 @@ export const api = {
 
   oauthStart: (provider) => req(`/api/auth/oauth/start/${provider}`),
 
+  // ── WebAuthn (Biometric) ──────────────────────────────────────────────────
+  webauthn: {
+    authenticateOptions: (identifier) =>
+      req('/api/webauthn/authenticate-options', {
+        method: 'POST',
+        body: JSON.stringify({ identifier }),
+      }),
+    authenticate: (identifier, credential) =>
+      req('/api/webauthn/authenticate', {
+        method: 'POST',
+        body: JSON.stringify({ identifier, credential }),
+      }),
+    registerOptions: () => authed('/api/webauthn/register-options', { method: 'POST' }),
+    register: (credential) =>
+      authed('/api/webauthn/register', { method: 'POST', body: JSON.stringify(credential) }),
+    credentials: () => authed('/api/webauthn/credentials'),
+    deleteCredential: (credentialId) =>
+      authed(`/api/webauthn/credentials/${credentialId}`, { method: 'DELETE' }),
+  },
+
   // ── Products ─────────────────────────────────────────────────────────────
   products: {
     list: (category) => req(`/api/products/${category ? `?category=${category}` : ''}`),
