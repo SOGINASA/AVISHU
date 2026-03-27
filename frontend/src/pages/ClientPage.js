@@ -17,7 +17,7 @@ const fmt = (n) =>
 
 const fmtDate = (s) =>
   s ? new Date(s).toLocaleString('ru-RU', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
-
+// for deploy
 const CAT_RU = {
   outerwear: 'Верхняя одежда',
   jackets:   'Жакеты',
