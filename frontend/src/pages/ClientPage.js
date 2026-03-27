@@ -159,7 +159,7 @@ function ShopModal({ item, onClose, onAddToCart }) {
     </div>
   );
 }
-
+// deploy 4
 function CartCheckoutModal({ items, onClose, onSuccess }) {
   const [step, setStep] = useState('card');
   const [cardNum, setCardNum] = useState('');
