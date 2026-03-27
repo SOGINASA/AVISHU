@@ -556,6 +556,39 @@ export default function AdminPage() {
 
         {tab === 'users' && (
           <>
+            <div className="flex flex-wrap gap-3 mb-6">
+              <button onClick={() => setShowCreateUser(v => !v)}
+                className="px-5 py-2.5 border border-white/12 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:text-white hover:border-white/35 transition-colors">
+                {showCreateUser ? '✕ Скрыть форму' : '+ Добавить пользователя'}
+              </button>
+            </div>
+
+            {showCreateUser && (
+              <form onSubmit={createUser} className="border border-white/10 bg-[#080808] p-5 mb-6 space-y-3">
+                <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Новый пользователь</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input value={newUser.full_name} onChange={e => setNewUser(u => ({ ...u, full_name: e.target.value }))}
+                    placeholder="ФИО" className="bg-transparent border border-white/12 px-3 py-2 text-sm text-white outline-none focus:border-white/35" />
+                  <input value={newUser.email} onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))}
+                    placeholder="email@example.com" className="bg-transparent border border-white/12 px-3 py-2 text-sm text-white outline-none focus:border-white/35" />
+                  <input value={newUser.password} onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))}
+                    placeholder="Пароль" type="password" className="bg-transparent border border-white/12 px-3 py-2 text-sm text-white outline-none focus:border-white/35" />
+                  <select value={newUser.role} onChange={e => setNewUser(u => ({ ...u, role: e.target.value }))}
+                    className="bg-transparent border border-white/12 px-3 py-2 text-sm text-white outline-none focus:border-white/35">
+                    <option value="client">Клиент</option>
+                    <option value="franchisee">Менеджер</option>
+                    <option value="production">Швея</option>
+                    <option value="admin">Админ</option>
+                  </select>
+                </div>
+                {createErr && <p className="text-xs text-red-400/80">{createErr}</p>}
+                <button type="submit" disabled={createBusy}
+                  className="bg-white text-black text-xs font-black uppercase tracking-[0.25em] px-5 py-2.5 hover:bg-white/92 transition-colors disabled:opacity-40">
+                  {createBusy ? 'Сохранение...' : 'Создать'}
+                </button>
+              </form>
+            )}
+
             <div className="flex gap-3 mb-6">
               <input value={search}
                 onChange={e => setSearch(e.target.value)}

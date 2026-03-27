@@ -5,6 +5,7 @@ import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
 
 const NEXT = { placed: 'accepted', accepted: 'sewing', sewing: 'ready', ready: 'delivered' };
+const CUSTOM_NEXT = { placed: 'accepted', accepted: 'sewing', sewing: 'ready', ready: 'delivered' };
 
 const STATUS = {
   placed:    { label: 'Новый',    dot: 'bg-white animate-pulse', badge: 'text-white bg-white/10 border border-white/20' },
@@ -97,23 +98,44 @@ export default function FranchiseePage() {
   const signOut = () => { logout(); navigate('/'); };
 
   const advance = async (o) => {
-    const next = NEXT[o.status];
+    const next = o.isCustom ? CUSTOM_NEXT[o.status] : NEXT[o.status];
     if (!next) return;
-    setBusy(o.id);
-    try { await updateStatus(o.id, next); }
-    catch (e) { alert(e.message); }
+    setBusy(o.isCustom ? (o.id + '_c') : o.id);
+
+    try {
+      if (o.isCustom) {
+        const d = await api.customOrders.updateStatus(o.id, next);
+        setCustomOrders(cs => cs.map(c => c.id === o.id ? d.order : c));
+      } else {
+        await updateStatus(o.id, next);
+      }
+    } catch (e) { alert(e.message); }
     finally { setBusy(null); }
   };
 
-  const visible = filter === 'all' ? orders : orders.filter(o => o.status === filter);
+  const visible = filter === 'all'
+    ? [...orders, ...customOrders]
+    : [...orders.filter(o => o.status === filter), ...customOrders.filter(o => o.status === filter)];
 
-  const pendingCustom = customOrders.filter(o => o.status === 'pending_review').length;
+  const pendingCustom = customOrders.filter(o => ['pending_review', 'pending_payment', 'placed'].includes(o.status)).length;
 
   const totals = {
-    revenue: orders.filter(o => !['placed'].includes(o.status)).reduce((s, o) => s + (o.totalPrice || 0), 0),
-    fresh: orders.filter(o => o.status === 'placed').length,
-    active: orders.filter(o => ['accepted', 'sewing'].includes(o.status)).length,
-    done: orders.filter(o => o.status === 'ready').length,
+    revenue: [
+      ...orders,
+      ...customOrders
+    ].filter(o => !['placed'].includes(o.status)).reduce((s, o) => s + ((o.totalPrice || o.price) || 0), 0),
+    fresh: [
+      ...orders.filter(o => o.status === 'placed'),
+      ...customOrders.filter(o => o.status === 'placed')
+    ].length,
+    active: [
+      ...orders.filter(o => ['accepted', 'sewing'].includes(o.status)),
+      ...customOrders.filter(o => ['accepted', 'sewing'].includes(o.status))
+    ].length,
+    done: [
+      ...orders.filter(o => o.status === 'ready'),
+      ...customOrders.filter(o => o.status === 'ready')
+    ].length,
   };
 
   const filters = [
@@ -191,16 +213,16 @@ export default function FranchiseePage() {
           <div className="divide-y divide-white/6">
             {visible.map(o => {
               const s = STATUS[o.status] || STATUS.placed;
-              const next = NEXT[o.status];
+              const next = o.isCustom ? CUSTOM_NEXT[o.status] : NEXT[o.status];
               return (
-                <div key={o.id} className="py-5 flex items-start gap-5">
+                <div key={`${o.isCustom ? 'c' : 'r'}${o.id}`} className="py-5 flex items-start gap-5">
                   <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${s.dot}`} />
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3 mb-1.5">
                       <div>
                         <p className="text-sm font-bold uppercase tracking-wide leading-tight">
-                          {o.product?.name || `Заказ #${o.id}`}
+                          {o.isCustom ? (o.title || `Заказ #${o.id}`) : (o.product?.name || `Заказ #${o.id}`)}
                         </p>
                         <p className="text-[10px] text-white/30 mt-0.5 font-medium">
                           #{o.id}
@@ -209,7 +231,7 @@ export default function FranchiseePage() {
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-black">{fmt(o.totalPrice)}</p>
+                        <p className="text-sm font-black">{fmt((o.totalPrice || o.price) || 0)}</p>
                         <p className="text-[9px] text-white/25 mt-0.5">{fmtDate(o.createdAt)}</p>
                       </div>
                     </div>
@@ -219,9 +241,9 @@ export default function FranchiseePage() {
                         {s.label}
                       </span>
                       {next && (
-                        <button onClick={() => advance(o)} disabled={busy === o.id}
+                        <button onClick={() => advance(o)} disabled={busy === (o.isCustom ? (o.id + '_c') : o.id)}
                           className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:text-white border border-white/12 hover:border-white/35 px-3.5 py-1.5 transition-colors disabled:opacity-30">
-                          {busy === o.id ? '...' : `→ ${STATUS[next]?.label || next}`}
+                          {busy === (o.isCustom ? (o.id + '_c') : o.id) ? '...' : `→ ${STATUS[next]?.label || next}`}
                         </button>
                       )}
                     </div>
@@ -235,7 +257,7 @@ export default function FranchiseePage() {
         {customOrders.filter(o => o.status === 'pending_review').length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              Индивидуальные заказы · {customOrders.filter(o => o.status === 'pending_review').length}
+              Индивидуальные заказы на рассмотрении · {customOrders.filter(o => o.status === 'pending_review').length}
             </p>
             <div className="divide-y divide-white/6">
               {customOrders.filter(o => o.status === 'pending_review').map(o => (
@@ -261,6 +283,51 @@ export default function FranchiseePage() {
           </div>
         )}
 
+        {customOrders.filter(o => o.status === 'pending_payment').length > 0 && (
+          <div className="mt-8 pt-8 border-t border-white/8">
+            <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
+              Ожидают оплаты · {customOrders.filter(o => o.status === 'pending_payment').length}
+            </p>
+            <div className="divide-y divide-white/6">
+              {customOrders.filter(o => o.status === 'pending_payment').map(o => (
+                <div key={o.id} className="py-5">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold uppercase tracking-wide">{o.title}</p>
+                      <p className="text-[10px] text-white/30 mt-0.5">
+                        #{o.id} · {o.client?.name || ''} · {new Date(o.createdAt).toLocaleDateString('ru-RU')}
+                      </p>
+                    </div>
+                    <div className="text-sm font-black">{fmt(o.price)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {customOrders.filter(o => o.status === 'placed').length > 0 && (
+          <div className="mt-8 pt-8 border-t border-white/8">
+            <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
+              Оплаченные на подтверждение · {customOrders.filter(o => o.status === 'placed').length}
+            </p>
+            <div className="divide-y divide-white/6">
+              {customOrders.filter(o => o.status === 'placed').map(o => (
+                <div key={o.id} className="py-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-wide">{o.title}</p>
+                    <p className="text-[10px] text-white/30 mt-0.5">#{o.id} · {o.client?.name || ''}</p>
+                  </div>
+                  <button onClick={() => advance({ ...o, isCustom: true })}
+                    disabled={busy === (o.id + '_c')}
+                    className="text-[10px] font-bold uppercase tracking-[0.15em] bg-white text-black px-4 py-2 hover:bg-white/92 transition-colors disabled:opacity-40">
+                    {busy === (o.id + '_c') ? '...' : 'Принять'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {priceModal && (
           <SetPriceModal
             order={priceModal}
