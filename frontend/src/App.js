@@ -11,16 +11,38 @@ import FranchiseePage from './pages/FranchiseePage';
 import ProductionPage from './pages/ProductionPage';
 import AdminPage from './pages/AdminPage';
 
+// Роли пользователей
+const VALID_ROLES = ['client', 'franchisee', 'production', 'admin'];
+
+// Маппинг user_type -> страница
+const ROLE_ROUTES = {
+  client: '/app/client',
+  franchisee: '/app/franchisee',
+  production: '/app/production',
+  admin: '/app/admin',
+};
+
 function RoleRouter() {
   const user = useAuthStore(s => s.user);
-  if (!user) return <Navigate to="/login" replace />;
-  switch (user.user_type) {
-    case 'client': return <Navigate to="/app/client" replace />;
-    case 'franchisee': return <Navigate to="/app/franchisee" replace />;
-    case 'production': return <Navigate to="/app/production" replace />;
-    case 'admin': return <Navigate to="/app/admin" replace />;
-    default: return <Navigate to="/app/client" replace />;
+  const loading = useAuthStore(s => s.loading);
+  
+  // Пока loading, показываем индикатор загрузки
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"
+              style={{ animationDelay: `${i * 0.12}s` }} />
+          ))}
+        </div>
+      </div>
+    );
   }
+  
+  // Если user_type невалидный, редиректим на client
+  const targetRoute = ROLE_ROUTES[user.user_type] || '/app/client';
+  return <Navigate to={targetRoute} replace />;
 }
 
 function AppInit({ children }) {

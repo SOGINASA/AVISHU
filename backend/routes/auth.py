@@ -238,6 +238,16 @@ def update_profile():
         if 'avatar_url' in data:
             user.avatar_url = data['avatar_url']
 
+        # Обновление роли (для завершения регистрации OAuth)
+        if 'role' in data and data['role']:
+            role = data['role'].strip().lower()
+            if role in VALID_ROLES:
+                user.user_type = role
+
+        # Завершение онбординга
+        if 'onboarding_completed' in data:
+            user.onboarding_completed = bool(data['onboarding_completed'])
+
         db.session.commit()
         return jsonify({'user': user.to_dict(include_sensitive=True)})
 

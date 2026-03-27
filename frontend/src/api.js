@@ -36,6 +36,12 @@ export const api = {
 
   me: () => authed('/api/auth/me'),
 
+  updateProfile: (data) =>
+    authed('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
   oauthStart: (provider) => req(`/api/auth/oauth/start/${provider}`),
 
   // ── WebAuthn (Biometric) ──────────────────────────────────────────────────

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import useAuthStore from '../stores/useAuthStore';
 
@@ -11,14 +11,28 @@ const ROLES = [
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
-  const [step, setStep] = useState(1);
+  const { login, user } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const isOAuth = searchParams.get('oauth') === 'true';
+  
+  const [step, setStep] = useState(isOAuth ? 2 : 1);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'client' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Если OAuth и уже есть данные пользователя - предзаполняем форму
+  useEffect(() => {
+    if (isOAuth && user) {
+      setForm(f => ({
+        ...f,
+        name: user.full_name || '',
+        email: user.email || ''
+      }));
+    }
+  }, [isOAuth, user]);
 
   const next = (e) => { e.preventDefault(); setStep(2); };
 
@@ -27,12 +41,27 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await api.register(form.name, form.email, form.password, form.role);
-      login({ access_token: data.access_token, refresh_token: data.refresh_token }, data.user);
-      navigate('/app', { replace: true });
+      if (isOAuth) {
+        // Для OAuth пользователей - обновляем профиль с ролью
+        const data = await api.updateProfile({ 
+          full_name: form.name, 
+          role: form.role,
+          onboarding_completed: true 
+        });
+        login({ 
+          access_token: localStorage.getItem('access_token'), 
+          refresh_token: localStorage.getItem('refresh_token') 
+        }, data.user);
+        navigate('/app', { replace: true });
+      } else {
+        // Для обычных пользователей - создаём новый аккаунт
+        const data = await api.register(form.name, form.email, form.password, form.role);
+        login({ access_token: data.access_token, refresh_token: data.refresh_token }, data.user);
+        navigate('/app', { replace: true });
+      }
     } catch (err) {
       setError(err.message);
-      setStep(1);
+      if (!isOAuth) setStep(1);
     } finally {
       setLoading(false);
     }

@@ -21,7 +21,18 @@ export default function OAuthCallbackPage() {
     if (access_token && userJson) {
       try {
         const user = JSON.parse(userJson);
+        
+        // Сохраняем токены и данные пользователя
         login({ access_token, refresh_token }, user);
+        
+        // Если onboarding не завершён - отправляем на регистрацию для выбора роли
+        if (!user.onboarding_completed) {
+          // Передаём OAuth данные в RegisterPage
+          navigate('/register?oauth=true', { replace: true });
+          return;
+        }
+        
+        // Если onboarding завершён - отправляем на свою страницу
         navigate('/app', { replace: true });
       } catch {
         navigate('/login', { replace: true });

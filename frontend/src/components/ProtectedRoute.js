@@ -17,14 +17,16 @@ export default function ProtectedRoute({ children, role }) {
     );
   }
 
+  // Не авторизован -> на логин
   if (!user) return <Navigate to="/login" replace />;
 
-  if (role && role !== 'admin' && user.user_type !== role && user.user_type !== 'admin') {
-    return <Navigate to="/app" replace />;
-  }
-  if (role === 'admin' && user.user_type !== 'admin') {
-    return <Navigate to="/app" replace />;
-  }
+  // Если роль не указана, пропускаем (для общих защищённых маршрутов)
+  if (!role) return children;
 
-  return children;
+  // Проверяем, соответствует ли роль пользователя требуемой
+  // Каждый пользователь (включая admin) видит только свою страницу
+  if (user.user_type === role) return children;
+
+  // Несоответствие роли -> на свою страницу (RoleRouter)
+  return <Navigate to="/app" replace />;
 }
