@@ -1,5 +1,6 @@
 import base64
-from flask import Blueprint, request, jsonify, current_app
+import json
+from flask import Blueprint, request, jsonify, current_app, Response
 from flask_jwt_extended import (
     create_access_token, create_refresh_token,
     jwt_required, get_jwt_identity,
@@ -111,7 +112,7 @@ def register_options():
     )
 
     _store_challenge(user_id, options.challenge, 'registration')
-    return jsonify(options_to_json(options)), 200
+    return Response(options_to_json(options), status=200, mimetype='application/json')
 
 
 @webauthn_bp.route('/register', methods=['POST'])
@@ -190,7 +191,7 @@ def authenticate_options():
     )
 
     _store_challenge(user.id, options.challenge, 'authentication')
-    return jsonify(options_to_json(options)), 200
+    return Response(options_to_json(options), status=200, mimetype='application/json')
 
 
 @webauthn_bp.route('/authenticate', methods=['POST'])
