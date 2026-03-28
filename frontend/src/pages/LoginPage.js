@@ -75,6 +75,7 @@ export default function LoginPage() {
       const { value: refreshToken } = await Preferences.get({ key: BIO_KEY });
       if (!refreshToken) throw new Error('no_token');
       const data = await api.refresh(refreshToken);
+      localStorage.setItem('access_token', data.access_token);
       const me = await api.me();
       login({ access_token: data.access_token, refresh_token: refreshToken }, me);
       navigate('/app', { replace: true });
