@@ -683,7 +683,6 @@ export default function ClientPage() {
       {tab === 'catalog' && (
         <div className="px-5 pt-[80px] pb-28">
           <div className="mb-8">
-            <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">Коллекция 2024</p>
             <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">{tt('Коллекция 2024')}</p>
             <h1 className="text-5xl font-black uppercase tracking-tight leading-none">AVISHU</h1>
             <p className="text-[10px] font-semibold tracking-[0.35em] uppercase text-white/22 mt-2">Premium Fashion · Kazakhstan</p>
