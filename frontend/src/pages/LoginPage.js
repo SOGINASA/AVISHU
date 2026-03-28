@@ -78,7 +78,6 @@ export default function LoginPage() {
       localStorage.setItem('access_token', data.access_token);
       const me = await api.me();
       login({ access_token: data.access_token, refresh_token: refreshToken }, me);
-      navigate('/app', { replace: true });
     } catch (err) {
       const code = err?.code || '';
       if (code !== 'userCancel' && code !== 'systemCancel') {
