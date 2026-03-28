@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
+import BottomNav, { Icons } from '../components/BottomNav';
 
 const FRANCHISEE_NEXT = { placed: 'accepted', ready: 'delivered' };
 
@@ -175,7 +176,7 @@ export default function FranchiseePage() {
   return (
     <div className="min-h-screen bg-black text-white">
 
-      <nav className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 px-6 py-4 flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xs font-black tracking-[0.35em] uppercase">AVISHU</span>
           <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/20">Партнёр</span>
@@ -200,7 +201,7 @@ export default function FranchiseePage() {
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-8 pb-28">
+      <div className="max-w-3xl mx-auto px-6 pt-[80px] pb-28">
 
         <div className="mb-8">
           <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Добро пожаловать</p>
@@ -396,6 +397,11 @@ export default function FranchiseePage() {
           />
         )}
       </div>
+
+      <BottomNav items={[
+        { id: 'main',    icon: Icons.home,   label: 'Главная', active: true,  onClick: () => {} },
+        { id: 'profile', icon: Icons.person, label: 'Профиль', active: false, onClick: () => navigate('/app/profile') },
+      ]} />
     </div>
   );
 }

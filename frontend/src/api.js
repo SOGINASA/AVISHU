@@ -42,7 +42,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  oauthStart: (provider) => req(`/api/auth/oauth/start/${provider}`),
+  oauthStart: (provider, mobile = false) => req(`/api/auth/oauth/start/${provider}${mobile ? '?mobile=true' : ''}`),
 
   // ── WebAuthn (Biometric) ──────────────────────────────────────────────────
   webauthn: {

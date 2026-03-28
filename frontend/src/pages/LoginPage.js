@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { api } from '../api';
 import useAuthStore from '../stores/useAuthStore';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -41,8 +43,13 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError('');
     try {
-      const data = await api.oauthStart('google');
-      window.location.href = data.redirect_url;
+      const isNative = Capacitor.isNativePlatform();
+      const data = await api.oauthStart('google', isNative);
+      if (isNative) {
+        await Browser.open({ url: data.redirect_url, presentationStyle: 'popover' });
+      } else {
+        window.location.href = data.redirect_url;
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -83,9 +90,14 @@ export default function LoginPage() {
       login({ access_token: authData.access_token, refresh_token: authData.refresh_token }, authData.user);
       navigate('/app', { replace: true });
     } catch (err) {
-      setError(err.message.includes('not found') || err.message.includes('NotFoundError')
-        ? 'Биометрические данные не найдены для этого пользователя'
-        : err.message);
+      const msg = err.message || '';
+      if (msg.includes('not found') || msg.includes('NotFoundError') || msg.includes('1004') || msg.includes('credentialNotFound')) {
+        setError('Биометрия не настроена. Войдите с паролем и добавьте устройство в Профиле.');
+      } else if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
+        setError('Вход отменён');
+      } else {
+        setError(msg || 'Ошибка биометрии');
+      }
     } finally {
       setBiometricLoading(false);
     }

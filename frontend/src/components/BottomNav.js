@@ -8,7 +8,7 @@ export default function BottomNav({ items }) {
               <button
                 key={item.id}
                 onClick={item.onClick}
-                className="flex-1 flex flex-col items-center justify-center py-3.5 gap-1 relative group"
+                className="flex-1 flex flex-col items-center justify-center py-5 gap-1.5 relative group"
               >
                 {item.active && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-px bg-white" />
@@ -27,7 +27,7 @@ export default function BottomNav({ items }) {
               </button>
             ))}
           </div>
-          <div className="h-safe-area-inset-bottom" />
+          <div style={{ height: 'env(safe-area-inset-bottom)' }} />
         </div>
       </div>
     </div>

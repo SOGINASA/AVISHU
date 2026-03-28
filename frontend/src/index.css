@@ -10,10 +10,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  body {
+  html, body {
     font-family: 'Montserrat', sans-serif;
     background-color: #000;
     color: #fff;
+    overscroll-behavior: none;
+    overflow-x: hidden;
   }
 }
 

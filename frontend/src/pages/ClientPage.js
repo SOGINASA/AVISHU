@@ -568,7 +568,7 @@ export default function ClientPage() {
   return (
     <div className="min-h-screen bg-black text-white max-w-[430px] mx-auto">
 
-      <nav className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-5 py-4">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-5 py-4">
         <span className="text-xs font-black tracking-[0.35em] uppercase">AVISHU</span>
         <button onClick={() => navigate('/app/profile')}
           className="group w-8 h-8 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors">
@@ -580,7 +580,7 @@ export default function ClientPage() {
       </nav>
 
       {tab === 'home' && (
-        <div className="px-5 pt-8 pb-28">
+        <div className="px-5 pt-[80px] pb-28">
           <div className="mb-8">
             <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">Добро пожаловать</p>
             <h1 className="text-4xl font-black uppercase tracking-tight leading-none">{user?.full_name?.split(' ')[0] || 'Клиент'}</h1>
@@ -669,7 +669,7 @@ export default function ClientPage() {
       )}
 
       {tab === 'catalog' && (
-        <div className="px-5 pt-8 pb-28">
+        <div className="px-5 pt-[80px] pb-28">
           <div className="mb-8">
             <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">Коллекция 2024</p>
             <h1 className="text-5xl font-black uppercase tracking-tight leading-none">AVISHU</h1>
@@ -699,7 +699,7 @@ export default function ClientPage() {
       )}
 
       {tab === 'cart' && (
-        <div className="px-5 py-8 pb-28">
+        <div className="px-5 pt-[80px] pb-28">
           {cart.length === 0 ? (
             <div className="py-24 text-center">
               <p className="text-4xl font-black text-white/6 mb-4">0</p>
@@ -751,7 +751,7 @@ export default function ClientPage() {
       )}
 
       {tab === 'orders' && (
-        <div className="px-5 py-8 pb-28">
+        <div className="px-5 pt-[80px] pb-28">
           <div className="border border-white/8 bg-[#080808] px-5 py-5 mb-8">
             <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-4">Лояльность</p>
             <div className="flex items-end justify-between mb-3">

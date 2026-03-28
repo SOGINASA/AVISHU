@@ -176,7 +176,7 @@ export default function ProductionPage() {
   return (
     <div className="min-h-screen bg-black text-white">
 
-      <nav className="bg-[#080808] border-b border-white/8 px-6 py-5 flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#080808] border-b border-white/8 px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <span className="text-sm font-black tracking-[0.35em] uppercase">AVISHU</span>
           <span className="text-xs font-semibold tracking-[0.2em] uppercase text-white/20">Цех</span>
@@ -201,7 +201,7 @@ export default function ProductionPage() {
         </div>
       </nav>
 
-      <div className="border-b border-white/8 px-6 py-6 flex items-end justify-between">
+      <div className="border-b border-white/8 px-6 py-6 flex items-end justify-between mt-[82px]">
         <div>
           <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Рабочее место</p>
           <div className="flex items-baseline gap-4">

@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import useAuthStore from './stores/useAuthStore';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import ProtectedRoute from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -48,16 +51,35 @@ function RoleRouter() {
 
 function AppInit({ children }) {
   const init = useAuthStore(s => s.init);
+  const login = useAuthStore(s => s.login);
   const hasInitialized = useRef(false);
-  
+
   useEffect(() => {
-    // Only run init once on mount, not on every re-render
     if (!hasInitialized.current) {
       hasInitialized.current = true;
       init();
     }
   }, [init]);
-  
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const handler = CapApp.addListener('appUrlOpen', async (event) => {
+      if (!event.url.startsWith('avishu://oauth/callback')) return;
+      await Browser.close();
+      const params = new URLSearchParams(event.url.split('?')[1] || '');
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      const userJson = params.get('user');
+      if (access_token && userJson) {
+        try {
+          const user = JSON.parse(userJson);
+          login({ access_token, refresh_token }, user);
+        } catch {}
+      }
+    });
+    return () => { handler.then(h => h.remove()); };
+  }, [login]);
+
   return children;
 }
 
