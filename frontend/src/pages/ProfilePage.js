@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import { api } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
+import { Capacitor } from '@capacitor/core';
+import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
+import { Preferences } from '@capacitor/preferences';
+
+const BIO_KEY = 'bio_refresh_token';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import { tr } from '../i18n';
@@ -35,6 +40,8 @@ export default function ProfilePage() {
   const [registering, setRegistering] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [msg, setMsg] = useState(null); // { text, error }
+  const [nativeBioEnabled, setNativeBioEnabled] = useState(false);
+  const [nativeBioAvailable, setNativeBioAvailable] = useState(false);
 
   const flash = (text, error = false) => {
     setMsg({ text, error });
@@ -53,6 +60,41 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => { loadCredentials(); }, [loadCredentials]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    Preferences.get({ key: BIO_KEY })
+      .then(r => setNativeBioEnabled(!!r.value))
+      .catch(() => {});
+  }, []);
+
+  const enableNativeBio = async () => {
+    setRegistering(true);
+    try {
+      await BiometricAuth.authenticate({
+        reason: 'Подтвердите личность для настройки входа',
+        cancelTitle: 'Отмена',
+      });
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) throw new Error('Нет активной сессии');
+      await Preferences.set({ key: BIO_KEY, value: refreshToken });
+      setNativeBioEnabled(true);
+      flash('Face ID включён');
+    } catch (err) {
+      const code = err?.code || '';
+      if (code !== 'userCancel' && code !== 'systemCancel') {
+        flash(err.message || 'Ошибка', true);
+      }
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const disableNativeBio = async () => {
+    await Preferences.remove({ key: BIO_KEY });
+    setNativeBioEnabled(false);
+    flash('Face ID отключён');
+  };
 
   const handleAddBiometric = async () => {
     setRegistering(true);
@@ -169,9 +211,39 @@ export default function ProfilePage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
+              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">Биометрия</p>
+              <p className="text-[11px] text-white/40">
+                {Capacitor.isNativePlatform() ? 'Face ID / Touch ID' : 'Face ID, Touch ID, Windows Hello'}
+              </p>
               <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">{tt('Биометрия')}</p>
               <p className="text-[11px] text-white/40">Face ID, Touch ID, Windows Hello</p>
             </div>
+            {Capacitor.isNativePlatform() ? (
+              nativeBioEnabled ? (
+                <button
+                  onClick={disableNativeBio}
+                  className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 text-white/40 hover:border-red-500/50 hover:text-red-400 transition-all"
+                >
+                  Отключить
+                </button>
+              ) : (
+                <button
+                  onClick={enableNativeBio}
+                  disabled={registering}
+                  className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
+                >
+                  {registering ? '...' : '+ Включить'}
+                </button>
+              )
+            ) : (
+              <button
+                onClick={handleAddBiometric}
+                disabled={registering}
+                className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
+              >
+                {registering ? '...' : '+ Добавить'}
+              </button>
+            )}
             <button
               onClick={handleAddBiometric}
               disabled={registering}
@@ -180,6 +252,18 @@ export default function ProfilePage() {
               {registering ? '...' : `+ ${tt('Добавить')}`}
             </button>
           </div>
+
+          {Capacitor.isNativePlatform() && nativeBioEnabled && (
+            <div className="border border-white/12 px-5 py-4 flex items-center gap-3">
+              <svg className="w-5 h-5 text-white/50 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold">Face ID</p>
+                <p className="text-[10px] text-white/30 mt-0.5">Этот iPhone</p>
+              </div>
+            </div>
+          )}
 
           {credsLoading ? (
             <div className="flex gap-1.5 py-6 justify-center">
@@ -235,6 +319,12 @@ export default function ProfilePage() {
           { id: 'catalog', icon: Icons.grid,  label: tt('Каталог'), active: false, onClick: () => navigate('/app/client') },
           { id: 'cart',    icon: Icons.bag,   label: tt('Корзина'), active: false, onClick: () => navigate('/app/client') },
           { id: 'orders',  icon: Icons.list,  label: tt('Заказы'),  active: false, onClick: () => navigate('/app/client') },
+        ]} />
+      )}
+      {user?.user_type === 'franchisee' && (
+        <BottomNav items={[
+          { id: 'main',    icon: Icons.home,   label: 'Главная', active: false, onClick: () => navigate('/app/franchisee') },
+          { id: 'profile', icon: Icons.person, label: 'Профиль', active: true,  onClick: () => {} },
         ]} />
       )}
       {user?.user_type === 'production' && (

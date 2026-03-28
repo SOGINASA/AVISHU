@@ -4,7 +4,6 @@ import { api } from '../api';
 import useAuthStore from '../stores/useAuthStore';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
-import { useTranslation } from 'react-i18next';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -16,7 +15,6 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [biometricLoading, setBiometricLoading] = useState(false);
-  const { t } = useTranslation();
 
   useEffect(() => {
     if (user) navigate('/app', { replace: true });
@@ -26,6 +24,13 @@ export default function LoginPage() {
     const e = new URLSearchParams(location.search).get('error');
     if (e) setError(e);
   }, [location.search]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    Preferences.get({ key: BIO_KEY })
+      .then(r => setNativeBioAvailable(!!r.value))
+      .catch(() => {});
+  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -54,6 +59,27 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleNativeBioLogin = async () => {
+    setError('');
+    setBiometricLoading(true);
+    try {
+      await BiometricAuth.authenticate({ reason: 'Войти в AVISHU', cancelTitle: 'Отмена' });
+      const { value: refreshToken } = await Preferences.get({ key: BIO_KEY });
+      if (!refreshToken) throw new Error('no_token');
+      const data = await api.refresh(refreshToken);
+      localStorage.setItem('access_token', data.access_token);
+      const me = await api.me();
+      login({ access_token: data.access_token, refresh_token: refreshToken }, me.user || me);
+    } catch (err) {
+      const code = err?.code || '';
+      if (code !== 'userCancel' && code !== 'systemCancel') {
+        setError('Ошибка Face ID. Войдите с паролем.');
+      }
+    } finally {
+      setBiometricLoading(false);
     }
   };
 
@@ -203,7 +229,7 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
               </svg>
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-                {biometricLoading ? '...' : t('loginPage.biometric')}
+                {biometricLoading ? '...' : 'Биометрия'}
               </span>
             </button>
           </div>
