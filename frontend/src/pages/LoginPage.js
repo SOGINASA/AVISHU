@@ -4,9 +4,10 @@ import { api } from '../api';
 import useAuthStore from '../stores/useAuthStore';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
-import { NativeBiometric } from 'capacitor-native-biometric';
+import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
+import { Preferences } from '@capacitor/preferences';
 
-const BIO_SERVER = 'kz.avishu.app';
+const BIO_KEY = 'bio_refresh_token';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -31,12 +32,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    NativeBiometric.isAvailable().then(r => {
-      if (!r.isAvailable) return;
-      NativeBiometric.getCredentials({ server: BIO_SERVER })
-        .then(() => setNativeBioAvailable(true))
-        .catch(() => {});
-    }).catch(() => {});
+    Preferences.get({ key: BIO_KEY })
+      .then(r => setNativeBioAvailable(!!r.value))
+      .catch(() => {});
   }, []);
 
   const submit = async (e) => {
@@ -73,15 +71,18 @@ export default function LoginPage() {
     setError('');
     setBiometricLoading(true);
     try {
-      await NativeBiometric.verifyIdentity({ reason: 'Войти в AVISHU', title: 'Face ID' });
-      const creds = await NativeBiometric.getCredentials({ server: BIO_SERVER });
-      const data = await api.refresh(creds.password);
+      await BiometricAuth.authenticate({ reason: 'Войти в AVISHU', cancelTitle: 'Отмена' });
+      const { value: refreshToken } = await Preferences.get({ key: BIO_KEY });
+      if (!refreshToken) throw new Error('no_token');
+      const data = await api.refresh(refreshToken);
       const me = await api.me();
-      login({ access_token: data.access_token, refresh_token: creds.password }, me);
+      login({ access_token: data.access_token, refresh_token: refreshToken }, me);
       navigate('/app', { replace: true });
     } catch (err) {
-      const msg = err.message || '';
-      if (!msg.includes('cancel')) setError('Ошибка Face ID. Войдите с паролем.');
+      const code = err?.code || '';
+      if (code !== 'userCancel' && code !== 'systemCancel') {
+        setError('Ошибка Face ID. Войдите с паролем.');
+      }
     } finally {
       setBiometricLoading(false);
     }

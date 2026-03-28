@@ -4,9 +4,10 @@ import useAuthStore from '../stores/useAuthStore';
 import { api } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
 import { Capacitor } from '@capacitor/core';
-import { NativeBiometric } from 'capacitor-native-biometric';
+import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
+import { Preferences } from '@capacitor/preferences';
 
-const BIO_SERVER = 'kz.avishu.app';
+const BIO_KEY = 'bio_refresh_token';
 
 const ROLE_LABELS = {
   client: 'Клиент',
@@ -57,47 +58,37 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    NativeBiometric.isAvailable().then(r => {
-      setNativeBioAvailable(r.isAvailable);
-      if (r.isAvailable) {
-        NativeBiometric.getCredentials({ server: BIO_SERVER })
-          .then(() => setNativeBioEnabled(true))
-          .catch(() => setNativeBioEnabled(false));
-      }
-    }).catch(() => {});
+    Preferences.get({ key: BIO_KEY })
+      .then(r => setNativeBioEnabled(!!r.value))
+      .catch(() => {});
   }, []);
 
   const enableNativeBio = async () => {
     setRegistering(true);
     try {
-      await NativeBiometric.verifyIdentity({
+      await BiometricAuth.authenticate({
         reason: 'Подтвердите личность для настройки входа',
-        title: 'Face ID',
+        cancelTitle: 'Отмена',
       });
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) throw new Error('Нет активной сессии');
-      await NativeBiometric.setCredentials({
-        username: user?.email || '',
-        password: refreshToken,
-        server: BIO_SERVER,
-      });
+      await Preferences.set({ key: BIO_KEY, value: refreshToken });
       setNativeBioEnabled(true);
       flash('Face ID включён');
     } catch (err) {
-      if (!err.message?.includes('cancel')) flash(err.message || 'Ошибка', true);
+      const code = err?.code || '';
+      if (code !== 'userCancel' && code !== 'systemCancel') {
+        flash(err.message || 'Ошибка', true);
+      }
     } finally {
       setRegistering(false);
     }
   };
 
   const disableNativeBio = async () => {
-    try {
-      await NativeBiometric.deleteCredentials({ server: BIO_SERVER });
-      setNativeBioEnabled(false);
-      flash('Face ID отключён');
-    } catch {
-      flash('Ошибка отключения', true);
-    }
+    await Preferences.remove({ key: BIO_KEY });
+    setNativeBioEnabled(false);
+    flash('Face ID отключён');
   };
 
   const handleAddBiometric = async () => {
