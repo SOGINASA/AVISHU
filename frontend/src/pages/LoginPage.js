@@ -59,10 +59,10 @@ export default function LoginPage() {
       const optionsData = await api.webauthn.authenticateOptions(email);
       const options = {
         ...optionsData,
-        challenge: Uint8Array.from(atob(optionsData.challenge), c => c.charCodeAt(0)),
+        challenge: Uint8Array.from(atob(optionsData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
         allowCredentials: optionsData.allowCredentials.map(cred => ({
           ...cred,
-          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)),
+          id: Uint8Array.from(atob(cred.id.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
         })),
       };
       const credential = await navigator.credentials.get({ publicKey: options });
