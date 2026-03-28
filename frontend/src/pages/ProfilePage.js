@@ -303,6 +303,12 @@ export default function ProfilePage() {
           { id: 'orders',  icon: Icons.list,  label: 'Заказы',  active: false, onClick: () => navigate('/app/client') },
         ]} />
       )}
+      {user?.user_type === 'franchisee' && (
+        <BottomNav items={[
+          { id: 'main',    icon: Icons.home,   label: 'Главная', active: false, onClick: () => navigate('/app/franchisee') },
+          { id: 'profile', icon: Icons.person, label: 'Профиль', active: true,  onClick: () => {} },
+        ]} />
+      )}
       {user?.user_type === 'production' && (
         <BottomNav items={[
           { id: 'free', icon: Icons.inbox,    label: 'Свободные', active: false, onClick: () => navigate('/app/production') },
