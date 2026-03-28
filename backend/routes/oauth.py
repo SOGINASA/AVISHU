@@ -35,12 +35,12 @@ def oauth_start(provider):
         if provider not in ['google', 'github', 'telegram']:
             return jsonify({'error': f'Unsupported provider: {provider}'}), 400
 
-        state = secrets.token_urlsafe(32)
         mobile = request.args.get('mobile', 'false') == 'true'
+        token = secrets.token_urlsafe(32)
+        state = f"mob.{token}" if mobile else token
         _state_tokens[state] = {
             'created_at': datetime.now(timezone.utc),
             'ttl': 600,
-            'mobile': mobile,
         }
 
         auth_url = get_oauth_service().get_authorization_url(provider, state)
@@ -132,8 +132,7 @@ def oauth_callback(provider):
             'is_new_user': 'true' if is_new_user else 'false',
         }
 
-        state_data = _state_tokens.pop(state, {})
-        is_mobile = state_data.get('mobile', False)
+        is_mobile = state.startswith('mob.')
         base_url = 'avishu://oauth/callback' if is_mobile else f"{Config.FRONTEND_URL}/oauth/callback"
         return redirect(f"{base_url}?{urlencode(callback_params)}"), 302
 
