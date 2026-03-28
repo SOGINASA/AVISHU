@@ -47,21 +47,21 @@ export const api = {
   // ── WebAuthn (Biometric) ──────────────────────────────────────────────────
   webauthn: {
     authenticateOptions: (identifier) =>
-      req('/api/webauthn/authenticate-options', {
+      req('/api/auth/webauthn/authenticate-options', {
         method: 'POST',
         body: JSON.stringify({ identifier }),
       }),
     authenticate: (identifier, credential) =>
-      req('/api/webauthn/authenticate', {
+      req('/api/auth/webauthn/authenticate', {
         method: 'POST',
         body: JSON.stringify({ identifier, credential }),
       }),
-    registerOptions: () => authed('/api/webauthn/register-options', { method: 'POST' }),
+    registerOptions: () => authed('/api/auth/webauthn/register-options', { method: 'POST' }),
     register: (credential) =>
-      authed('/api/webauthn/register', { method: 'POST', body: JSON.stringify(credential) }),
-    credentials: () => authed('/api/webauthn/credentials'),
+      authed('/api/auth/webauthn/register', { method: 'POST', body: JSON.stringify(credential) }),
+    credentials: () => authed('/api/auth/webauthn/credentials'),
     deleteCredential: (credentialId) =>
-      authed(`/api/webauthn/credentials/${credentialId}`, { method: 'DELETE' }),
+      authed(`/api/auth/webauthn/credentials/${credentialId}`, { method: 'DELETE' }),
   },
 
   // ── Products ─────────────────────────────────────────────────────────────
