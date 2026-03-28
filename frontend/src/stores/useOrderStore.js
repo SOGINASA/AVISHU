@@ -99,7 +99,9 @@ const useOrderStore = create((set, get) => ({
       }));
     } else if (type === 'order_updated') {
       set(s => ({
-        orders: s.orders.map(o => o.id === order.id ? order : o),
+        orders: s.orders.find(o => o.id === order.id)
+          ? s.orders.map(o => o.id === order.id ? order : o)
+          : [order, ...s.orders],
       }));
     }
   },

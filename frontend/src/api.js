@@ -153,5 +153,11 @@ export const api = {
     feedback: (page = 1) => authed(`/api/admin/feedback?page=${page}`),
     auditLogs: (page = 1) => authed(`/api/admin/audit-logs?page=${page}&per_page=25`),
     createUser: (data) => authed('/api/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+    setSalesPlan: (userId, month, target) =>
+      authed('/api/admin/sales-plan', { method: 'POST', body: JSON.stringify({ userId, month, target }) }),
+    getSalesPlan: (userId, month) =>
+      authed(`/api/admin/sales-plan/${userId}?month=${month}`),
+    myPlan: (month) =>
+      authed(`/api/admin/my-plan?month=${month}`),
   },
 };

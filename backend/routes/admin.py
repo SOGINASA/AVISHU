@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Feedback, AuditLog, Order
+from datetime import datetime, timezone
+from models import db, User, Feedback, AuditLog, Order, SalesPlan
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__)
@@ -178,3 +179,49 @@ def get_stats():
         'feedback': {'unread': unread_feedback},
         'orders': {'total': total_orders, 'new': new_orders},
     })
+
+
+@admin_bp.route('/sales-plan', methods=['POST'])
+@admin_required
+def set_sales_plan():
+    data = request.get_json() or {}
+    user_id = data.get('userId') or data.get('user_id')
+    month = (data.get('month') or '').strip()
+    target = data.get('target')
+
+    if not user_id or not month or target is None:
+        return jsonify({'error': 'userId, month, target required'}), 400
+
+    user = User.query.get(user_id)
+    if not user or user.user_type != 'franchisee':
+        return jsonify({'error': 'Franchisee not found'}), 404
+
+    plan = SalesPlan.query.filter_by(user_id=user_id, month=month).first()
+    if plan:
+        plan.target = float(target)
+        plan.updated_at = datetime.now(timezone.utc)
+    else:
+        plan = SalesPlan(user_id=user_id, month=month, target=float(target))
+        db.session.add(plan)
+    db.session.commit()
+    return jsonify({'plan': plan.to_dict()})
+
+
+@admin_bp.route('/sales-plan/<int:user_id>', methods=['GET'])
+@admin_required
+def get_sales_plan(user_id):
+    month = request.args.get('month', datetime.now(timezone.utc).strftime('%Y-%m'))
+    plan = SalesPlan.query.filter_by(user_id=user_id, month=month).first()
+    return jsonify({'plan': plan.to_dict() if plan else None})
+
+
+@admin_bp.route('/my-plan', methods=['GET'])
+@jwt_required()
+def my_plan():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or user.user_type not in ('franchisee', 'admin'):
+        return jsonify({'error': 'Forbidden'}), 403
+    month = request.args.get('month', datetime.now(timezone.utc).strftime('%Y-%m'))
+    plan = SalesPlan.query.filter_by(user_id=user_id, month=month).first()
+    return jsonify({'plan': plan.to_dict() if plan else None, 'month': month})

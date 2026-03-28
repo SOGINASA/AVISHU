@@ -444,3 +444,28 @@ class CustomOrder(db.Model):
         if self.seamstress:
             data['seamstress'] = {'id': self.seamstress.id, 'name': self.seamstress.full_name or '—'}
         return data
+
+
+class SalesPlan(db.Model):
+    __tablename__ = 'sales_plans'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    month = db.Column(db.String(7), nullable=False)
+    target = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship('User', backref=db.backref('sales_plans', lazy='dynamic'))
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'month', name='uq_sales_plan_user_month'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'userId': self.user_id,
+            'month': self.month,
+            'target': self.target,
+        }

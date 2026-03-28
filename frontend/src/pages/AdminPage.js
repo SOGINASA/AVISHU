@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
+import BottomNav, { Icons } from '../components/BottomNav';
 
 const NEXT = { placed: 'accepted', accepted: 'sewing', sewing: 'ready', ready: 'delivered' };
 
@@ -48,6 +49,11 @@ export default function AdminPage() {
   const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'production' });
   const [createBusy, setCreateBusy] = useState(false);
   const [createErr, setCreateErr] = useState('');
+  const [planModal, setPlanModal] = useState(null);
+  const [planValue, setPlanValue] = useState('');
+  const [planMonth, setPlanMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [planBusy, setPlanBusy] = useState(false);
+  const [planErr, setPlanErr] = useState('');
 
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -130,6 +136,31 @@ export default function AdminPage() {
       else await api.admin.activate(u.id);
       loadUsers();
     } catch {}
+  };
+
+  const openPlanModal = async (u) => {
+    setPlanErr('');
+    setPlanValue('');
+    setPlanMonth(new Date().toISOString().slice(0, 7));
+    setPlanModal(u);
+    try {
+      const d = await api.admin.getSalesPlan(u.id, new Date().toISOString().slice(0, 7));
+      if (d.plan) setPlanValue(String(d.plan.target));
+    } catch {}
+  };
+
+  const savePlan = async () => {
+    if (!planValue || parseFloat(planValue) <= 0) { setPlanErr('Введите сумму плана'); return; }
+    setPlanBusy(true);
+    setPlanErr('');
+    try {
+      await api.admin.setSalesPlan(planModal.id, planMonth, parseFloat(planValue));
+      setPlanModal(null);
+    } catch (e) {
+      setPlanErr(e.message);
+    } finally {
+      setPlanBusy(false);
+    }
   };
 
   const startEdit = (p) => {
@@ -237,7 +268,7 @@ export default function AdminPage() {
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-6 py-8 pb-28">
 
         <div className="mb-8">
           <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Панель управления</p>
@@ -260,20 +291,6 @@ export default function AdminPage() {
           ))}
         </div>
 
-        <div className="flex gap-px bg-white/6 border border-white/6 mb-8 overflow-hidden">
-          {[
-            { id: 'orders',   label: `Заказы · ${orders.length}` },
-            { id: 'products', label: `Товары · ${products.length}` },
-            { id: 'users',    label: 'Пользователи' },
-          ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex-1 py-3 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors bg-black ${
-                tab === t.id ? 'text-white' : 'text-white/25 hover:text-white/50'
-              }`}>
-              {t.label}
-            </button>
-          ))}
-        </div>
 
         {tab === 'orders' && (
           <>
@@ -606,7 +623,7 @@ export default function AdminPage() {
             ) : (
               <div className="divide-y divide-white/6">
                 {users.map(u => (
-                  <div key={u.id} className="py-4 flex items-center gap-5">
+                  <div key={u.id} className="py-4 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-bold uppercase tracking-wide ${u.is_active ? '' : 'line-through text-white/30'}`}>
                         {u.full_name || u.nickname || '—'}
@@ -615,8 +632,14 @@ export default function AdminPage() {
                         {u.email} · {ROLE_LABEL[u.user_type] || u.user_type}
                       </p>
                     </div>
+                    {u.user_type === 'franchisee' && (
+                      <button onClick={() => openPlanModal(u)}
+                        className="text-[10px] font-bold uppercase tracking-[0.15em] px-3.5 py-1.5 border border-white/12 text-white/30 hover:border-white/35 hover:text-white transition-colors flex-shrink-0">
+                        План
+                      </button>
+                    )}
                     <button onClick={() => toggleUser(u)}
-                      className={`text-[10px] font-bold uppercase tracking-[0.15em] px-3.5 py-1.5 border transition-colors ${
+                      className={`text-[10px] font-bold uppercase tracking-[0.15em] px-3.5 py-1.5 border transition-colors flex-shrink-0 ${
                         u.is_active
                           ? 'border-white/12 text-white/30 hover:border-red-500/40 hover:text-red-400'
                           : 'border-white/12 text-white/30 hover:border-white/35 hover:text-white'
@@ -630,6 +653,45 @@ export default function AdminPage() {
           </>
         )}
       </div>
+
+      <BottomNav items={[
+        { id: 'orders',   icon: Icons.list,   label: `Заказы${orders.length ? ` · ${orders.length}` : ''}`, active: tab === 'orders',   onClick: () => setTab('orders') },
+        { id: 'products', icon: Icons.grid,   label: 'Товары',         active: tab === 'products', onClick: () => setTab('products') },
+        { id: 'users',    icon: Icons.person, label: 'Польз.',         active: tab === 'users',    onClick: () => setTab('users') },
+      ]} />
+
+      {planModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setPlanModal(null)}>
+          <div className="bg-[#080808] border border-white/10 w-full max-w-sm p-7 space-y-5"
+            onClick={e => e.stopPropagation()}>
+            <div>
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">План продаж</p>
+              <p className="text-base font-black uppercase tracking-tight">{planModal.full_name}</p>
+            </div>
+            <div>
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Месяц</p>
+              <input type="month" value={planMonth} onChange={e => setPlanMonth(e.target.value)}
+                className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors" />
+            </div>
+            <div>
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Целевая выручка, ₸</p>
+              <input value={planValue} onChange={e => setPlanValue(e.target.value.replace(/\D/g, ''))}
+                placeholder="2000000" inputMode="numeric"
+                className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-xl font-black outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+            </div>
+            {planErr && <p className="text-xs text-red-400/80">{planErr}</p>}
+            <div className="flex gap-2.5">
+              <button onClick={() => setPlanModal(null)}
+                className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 transition-colors">←</button>
+              <button onClick={savePlan} disabled={planBusy}
+                className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors disabled:opacity-40">
+                {planBusy ? '...' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

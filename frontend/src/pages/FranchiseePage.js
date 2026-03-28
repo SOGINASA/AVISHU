@@ -21,6 +21,8 @@ const fmt = (n) =>
 const fmtDate = (s) =>
   new Date(s).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
+const thisMonth = () => new Date().toISOString().slice(0, 7);
+
 function SetPriceModal({ order, onClose, onDone }) {
   const [price, setPrice] = useState('');
   const [err, setErr] = useState('');
@@ -87,11 +89,13 @@ export default function FranchiseePage() {
   const [busy, setBusy] = useState(null);
   const [customOrders, setCustomOrders] = useState([]);
   const [priceModal, setPriceModal] = useState(null);
+  const [salesPlan, setSalesPlan] = useState(null);
 
   useEffect(() => {
     connectWs();
     fetchOrders();
     api.customOrders.list().then(d => setCustomOrders(d.orders || [])).catch(() => {});
+    api.admin.myPlan(thisMonth()).then(d => setSalesPlan(d.plan)).catch(() => {});
     return () => disconnectWs();
   }, []);
 
@@ -113,37 +117,53 @@ export default function FranchiseePage() {
     finally { setBusy(null); }
   };
 
-  const visible = filter === 'all'
-    ? [...orders, ...customOrders]
-    : [...orders.filter(o => o.status === filter), ...customOrders.filter(o => o.status === filter)];
-
-  const pendingCustom = customOrders.filter(o => ['pending_review', 'pending_payment', 'placed'].includes(o.status)).length;
+  const month = thisMonth();
+  const monthOrders = orders.filter(o => (o.createdAt || '').startsWith(month));
+  const monthCustom = customOrders.filter(o => (o.createdAt || '').startsWith(month));
+  const monthRevenue = [
+    ...monthOrders.filter(o => o.status !== 'placed'),
+    ...monthCustom.filter(o => !['pending_review', 'pending_payment', 'placed'].includes(o.status)),
+  ].reduce((s, o) => s + ((o.totalPrice || o.price) || 0), 0);
 
   const totals = {
     revenue: [
       ...orders,
-      ...customOrders
-    ].filter(o => !['placed'].includes(o.status)).reduce((s, o) => s + ((o.totalPrice || o.price) || 0), 0),
-    fresh: [
-      ...orders.filter(o => o.status === 'placed'),
-      ...customOrders.filter(o => o.status === 'placed')
-    ].length,
+      ...customOrders,
+    ].filter(o => !['placed', 'pending_review', 'pending_payment'].includes(o.status))
+      .reduce((s, o) => s + ((o.totalPrice || o.price) || 0), 0),
+    fresh: orders.filter(o => o.status === 'placed').length,
     active: [
       ...orders.filter(o => ['accepted', 'sewing'].includes(o.status)),
-      ...customOrders.filter(o => ['accepted', 'sewing'].includes(o.status))
+      ...customOrders.filter(o => ['accepted', 'sewing'].includes(o.status)),
     ].length,
     done: [
       ...orders.filter(o => o.status === 'ready'),
-      ...customOrders.filter(o => o.status === 'ready')
+      ...customOrders.filter(o => o.status === 'ready'),
     ].length,
   };
 
+  const pendingCustom = customOrders.filter(o => ['pending_review', 'pending_payment'].includes(o.status)).length;
+
+  const planTarget = salesPlan?.target || 0;
+  const planPct = planTarget > 0 ? Math.min(100, (monthRevenue / planTarget) * 100) : 0;
+
+  const mainCustomOrders = customOrders.filter(o => ['accepted', 'sewing', 'ready', 'delivered'].includes(o.status));
+
+  const visible = filter === 'all'
+    ? [...orders, ...mainCustomOrders]
+    : filter === 'placed'
+      ? orders.filter(o => o.status === 'placed')
+      : [
+          ...orders.filter(o => o.status === filter),
+          ...customOrders.filter(o => o.status === filter),
+        ];
+
   const filters = [
-    { id: 'all', label: 'Все', count: orders.length },
-    { id: 'placed', label: 'Новые', count: totals.fresh },
+    { id: 'all',      label: 'Все',     count: orders.length + mainCustomOrders.length },
+    { id: 'placed',   label: 'Новые',   count: totals.fresh },
     { id: 'accepted', label: 'Приняты', count: null },
-    { id: 'sewing', label: 'Пошив', count: null },
-    { id: 'ready', label: 'Готовы', count: totals.done },
+    { id: 'sewing',   label: 'Пошив',   count: null },
+    { id: 'ready',    label: 'Готовы',  count: totals.done },
   ];
 
   return (
@@ -185,20 +205,44 @@ export default function FranchiseePage() {
           </h1>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/6 border border-white/6 mb-8 overflow-hidden">
-          {[
-            { label: 'Выручка', value: fmt(totals.revenue), muted: false },
-            { label: 'Новых', value: totals.fresh, muted: totals.fresh === 0, accent: totals.fresh > 0 },
-            { label: 'В работе', value: totals.active, muted: totals.active === 0 },
-            { label: 'Свои заказы', value: pendingCustom, muted: pendingCustom === 0, accent: pendingCustom > 0 },
-          ].map(m => (
-            <div key={m.label} className="bg-black px-5 py-5">
-              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2.5">{m.label}</p>
-              <p className={`text-2xl font-black ${m.accent ? 'text-white' : m.muted ? 'text-white/25' : 'text-white/80'}`}>
-                {m.value}
-              </p>
-            </div>
-          ))}
+        <div className="border border-white/6 mb-8 overflow-hidden">
+          <div className="bg-black px-5 pt-5 pb-4 border-b border-white/6">
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Выручка · {month}</p>
+            <p className="text-3xl font-black text-white mb-4">{fmt(monthRevenue)}</p>
+            {planTarget > 0 && (
+              <>
+                <div className="h-px bg-white/8 overflow-hidden mb-2">
+                  <div className="h-full bg-white/45 transition-all duration-700" style={{ width: `${planPct}%` }} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] text-white/30 font-semibold">
+                    {planPct >= 100 ? '✓ план выполнен' : `${Math.round(planPct)}%`}
+                  </p>
+                  <p className="text-[9px] text-white/30 font-semibold">
+                    {planTarget > monthRevenue
+                      ? `план ${fmt(planTarget)} · осталось ${fmt(planTarget - monthRevenue)}`
+                      : `план ${fmt(planTarget)} · +${fmt(monthRevenue - planTarget)}`}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="grid grid-cols-4 gap-px bg-white/6">
+            {[
+              { label: 'Новых',      value: totals.fresh,   accent: totals.fresh > 0 },
+              { label: 'В работе',   value: totals.active,  muted: totals.active === 0 },
+              { label: 'Готовы',     value: totals.done,    muted: totals.done === 0 },
+              { label: 'Индив.',     value: pendingCustom,  accent: pendingCustom > 0 },
+            ].map(m => (
+              <div key={m.label} className="bg-black px-3 py-4">
+                <p className="text-[8px] font-semibold tracking-[0.3em] uppercase text-white/25 mb-2">{m.label}</p>
+                <p className={`text-xl font-black ${m.accent ? 'text-white' : m.muted ? 'text-white/20' : 'text-white/70'}`}>
+                  {m.value}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex gap-px bg-white/6 border border-white/6 mb-6 overflow-hidden">
@@ -235,6 +279,8 @@ export default function FranchiseePage() {
                           #{o.id}
                           {o.client?.name ? ` · ${o.client.name}` : ''}
                           {o.quantity > 1 ? ` · ${o.quantity} шт.` : ''}
+                          {!o.isCustom && o.product?.isPreorder ? ' · Предзаказ' : ''}
+                          {!o.isCustom && o.desiredDate ? ` · к ${new Date(o.desiredDate).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })}` : ''}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -264,7 +310,7 @@ export default function FranchiseePage() {
         {customOrders.filter(o => o.status === 'pending_review').length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              Индивидуальные заказы на рассмотрении · {customOrders.filter(o => o.status === 'pending_review').length}
+              На рассмотрении · {customOrders.filter(o => o.status === 'pending_review').length}
             </p>
             <div className="divide-y divide-white/6">
               {customOrders.filter(o => o.status === 'pending_review').map(o => (
@@ -316,7 +362,7 @@ export default function FranchiseePage() {
         {customOrders.filter(o => o.status === 'placed').length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              Оплаченные на подтверждение · {customOrders.filter(o => o.status === 'placed').length}
+              Оплачены · ждут подтверждения · {customOrders.filter(o => o.status === 'placed').length}
             </p>
             <div className="divide-y divide-white/6">
               {customOrders.filter(o => o.status === 'placed').map(o => (
@@ -335,6 +381,7 @@ export default function FranchiseePage() {
             </div>
           </div>
         )}
+
         {priceModal && (
           <SetPriceModal
             order={priceModal}
