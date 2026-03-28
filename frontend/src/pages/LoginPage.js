@@ -77,7 +77,7 @@ export default function LoginPage() {
       const data = await api.refresh(refreshToken);
       localStorage.setItem('access_token', data.access_token);
       const me = await api.me();
-      login({ access_token: data.access_token, refresh_token: refreshToken }, me);
+      login({ access_token: data.access_token, refresh_token: refreshToken }, me.user || me);
     } catch (err) {
       const code = err?.code || '';
       if (code !== 'userCancel' && code !== 'systemCancel') {
