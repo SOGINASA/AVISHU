@@ -9,6 +9,8 @@ import {
 import useAuthStore from '../stores/useAuthStore';
 import { usePush } from '../hooks/usePush';
 import { api, getWsUrl } from '../api';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../i18n';
 
 export default function DashboardPage() {
   const { user, logout } = useAuthStore();
@@ -22,6 +24,8 @@ export default function DashboardPage() {
   const [testLoading, setTestLoading] = useState(false);
   const wsRef = useRef(null);
   const bellRef = useRef(null);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   const loadNotifications = useCallback(async () => {
     setLoadingNotifs(true);
@@ -117,7 +121,7 @@ export default function DashboardPage() {
           {user?.user_type === 'admin' && (
             <motion.button whileHover={{ scale: 1.02 }} onClick={() => navigate('/admin')}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-amber-700 hover:text-amber-400 border border-amber-900/30 rounded-lg hover:border-amber-700/50 transition-all">
-              <TbShield size={13} />Админ
+              <TbShield size={13} />{tt('Админ')}
             </motion.button>
           )}
 
@@ -143,16 +147,16 @@ export default function DashboardPage() {
                   exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.15 }}
                   className="absolute right-0 top-12 w-80 bg-[#1a1308] border border-[#2e2010] rounded-2xl overflow-hidden shadow-2xl">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-[#2e2010]">
-                    <span className="text-[12px] font-bold text-[#eddcba]">Уведомления</span>
+                    <span className="text-[12px] font-bold text-[#eddcba]">{tt('Уведомления')}</span>
                     {unread > 0 && (
                       <button onClick={handleMarkAllRead} className="text-[11px] text-amber-700 hover:text-amber-500 transition-colors">
-                        Прочитать все
+                        {tt('Прочитать все')}
                       </button>
                     )}
                   </div>
                   <div className="max-h-72 overflow-y-auto">
                     {notifications.length === 0
-                      ? <div className="py-8 text-center text-stone-600 text-[12px]">Нет уведомлений</div>
+                      ? <div className="py-8 text-center text-stone-600 text-[12px]">{tt('Нет уведомлений')}</div>
                       : notifications.map(n => (
                         <div key={n.id} className={`px-4 py-3 border-b border-[#2e2010]/40 last:border-0 ${!n.isRead ? 'bg-amber-950/10' : ''}`}>
                           <div className="flex items-start gap-2">
@@ -195,7 +199,7 @@ export default function DashboardPage() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="mb-8 mt-6">
           <div className="text-[11px] text-amber-700 font-mono uppercase tracking-widest mb-2">// дашборд</div>
           <h1 className="text-2xl font-black text-[#eddcba]">
-            Добро пожаловать, {user?.full_name?.split(' ')[0] || user?.nickname || 'пользователь'}
+            {tt('Добро пожаловать')}, {user?.full_name?.split(' ')[0] || user?.nickname || 'пользователь'}
           </h1>
           <p className="text-stone-600 text-[13px] mt-1">{user?.email}</p>
         </motion.div>
@@ -203,9 +207,9 @@ export default function DashboardPage() {
         {/* Stat cards */}
         <div className="grid sm:grid-cols-3 gap-3 mb-6">
           {[
-            { label: 'Аккаунт', value: user?.user_type === 'admin' ? 'Администратор' : 'Пользователь', sub: user?.is_verified ? 'Верифицирован' : 'Не верифицирован', color: 'text-amber-400' },
-            { label: 'Уведомлений', value: unread, sub: unread > 0 ? 'непрочитанных' : 'всё прочитано', color: unread > 0 ? 'text-amber-400' : 'text-stone-500' },
-            { label: 'Статус', value: user?.is_active ? 'Активен' : 'Неактивен', sub: user?.oauth_provider ? `OAuth: ${user.oauth_provider}` : 'Email / пароль', color: user?.is_active ? 'text-green-500' : 'text-red-500' },
+            { label: tt('Аккаунт'), value: user?.user_type === 'admin' ? tt('Администратор') : tt('Пользователь'), sub: user?.is_verified ? tt('Верифицирован') : tt('Не верифицирован'), color: 'text-amber-400' },
+            { label: tt('Уведомлений'), value: unread, sub: unread > 0 ? tt('непрочитанных') : tt('всё прочитано'), color: unread > 0 ? 'text-amber-400' : 'text-stone-500' },
+            { label: tt('Статус'), value: user?.is_active ? tt('Активен') : tt('Неактивен'), sub: user?.oauth_provider ? `OAuth: ${user.oauth_provider}` : tt('Email / пароль'), color: user?.is_active ? 'text-green-500' : 'text-red-500' },
           ].map(({ label, value, sub, color }) => (
             <motion.div key={label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               className="bg-[#1f1610] border border-[#2e2010] rounded-2xl p-5 hover:border-amber-900/40 transition-colors">
@@ -229,8 +233,8 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <TbBell className="text-amber-600 flex-shrink-0" size={16} />
                   <div>
-                    <div className="text-[13px] text-[#eddcba] font-medium">Включить пуш-уведомления</div>
-                    <div className="text-[11px] text-stone-600">Получайте уведомления даже когда вкладка закрыта</div>
+                    <div className="text-[13px] text-[#eddcba] font-medium">{tt('Включить пуш-уведомления')}</div>
+                    <div className="text-[11px] text-stone-600">{tt('Получайте уведомления даже когда вкладка закрыта')}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -241,7 +245,7 @@ export default function DashboardPage() {
                     disabled={push.loading}
                     className="px-3 py-1.5 bg-amber-600 text-[#18120a] text-[12px] font-bold rounded-lg hover:bg-amber-500 transition-colors disabled:opacity-50"
                   >
-                    {push.loading ? 'Подключение...' : 'Включить'}
+                    {push.loading ? tt('Подключение...') : tt('Вкл')}
                   </motion.button>
                 </div>
               </div>
@@ -251,7 +255,7 @@ export default function DashboardPage() {
           {pushDenied && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 flex items-center gap-2 px-4 py-3 bg-[#1f1610] border border-[#2e2010] rounded-xl text-stone-600 text-[12px]">
               <TbBellOff size={14} />
-              Пуш-уведомления заблокированы в браузере. Разрешите в настройках сайта.
+              {tt('Пуш-уведомления заблокированы в браузере. Разрешите в настройках сайта.')}
             </motion.div>
           )}
         </AnimatePresence>
@@ -262,15 +266,15 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-[#2e2010]">
             <div className="flex items-center gap-2.5">
               <TbBell className="text-amber-700" size={15} />
-              <span className="text-[12px] font-bold text-[#eddcba] uppercase tracking-wider">Уведомления</span>
+              <span className="text-[12px] font-bold text-[#eddcba] uppercase tracking-wider">{tt('Уведомления')}</span>
               {unread > 0 && (
-                <span className="px-1.5 py-0.5 bg-amber-600/20 text-amber-500 text-[10px] rounded font-mono">{unread} новых</span>
+                <span className="px-1.5 py-0.5 bg-amber-600/20 text-amber-500 text-[10px] rounded font-mono">{unread} {tt('Новые').toLowerCase()}</span>
               )}
             </div>
             <div className="flex items-center gap-3">
               {unread > 0 && (
                 <button onClick={handleMarkAllRead} className="text-[11px] text-amber-800 hover:text-amber-500 transition-colors">
-                  Прочитать все
+                  {tt('Прочитать все')}
                 </button>
               )}
               {push.subscribed && (
@@ -289,13 +293,14 @@ export default function DashboardPage() {
           </div>
 
           {loadingNotifs ? (
-            <div className="py-14 text-center text-stone-600 text-[12px] font-mono">Загрузка...</div>
+            <div className="py-14 text-center text-stone-600 text-[12px] font-mono">{tt('Загрузка')}...</div>
+            <div className="py-14 text-center text-stone-600 text-[12px] font-mono">{tt('Загрузка')}...</div>
           ) : notifications.length === 0 ? (
             <div className="py-14 text-center">
               <TbBell className="text-stone-800 mx-auto mb-3" size={28} />
-              <div className="text-stone-600 text-[13px]">Уведомлений пока нет</div>
+              <div className="text-stone-600 text-[13px]">{tt('Уведомлений пока нет')}</div>
               <button onClick={handleTestNotif} className="mt-3 text-[12px] text-amber-800 hover:text-amber-600 transition-colors">
-                Отправить тестовое →
+                {tt('Отправить тестовое →')}
               </button>
             </div>
           ) : (

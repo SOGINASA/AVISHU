@@ -4,6 +4,8 @@ import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../i18n';
 
 export default function ProductionPage() {
   const navigate = useNavigate();
@@ -13,6 +15,8 @@ export default function ProductionPage() {
   const [busy, setBusy] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [tab, setTab] = useState('free');
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => {
     connectWs();
@@ -79,8 +83,8 @@ export default function ProductionPage() {
   };
 
   const STATUS_NEXT = { accepted: 'sewing', sewing: 'ready' };
-  const STATUS_LABEL = { accepted: 'Принят', sewing: 'Пошив', ready: 'Готово', delivered: 'Доставлен', placed: 'Новый' };
-  const NEXT_LABEL = { sewing: 'В пошив', ready: 'Готово' };
+  const STATUS_LABEL = { accepted: tt('Принят'), sewing: tt('Пошив'), ready: tt('Готово'), delivered: tt('Доставлен'), placed: tt('Новые') };
+  const NEXT_LABEL = { sewing: tt('В пошив'), ready: tt('Готово') };
 
   const key = (o) => (o.isCustom ? 'c' : 'r') + o.id;
 
@@ -97,7 +101,7 @@ export default function ProductionPage() {
           <div className="px-5 pt-5 pb-4">
             {o.isCustom && (
               <span className="text-[8px] font-bold tracking-[0.4em] uppercase text-white/25 border border-white/12 px-2 py-0.5 mr-2">
-                Своё
+                {tt('Своё')}
               </span>
             )}
             <p className="text-[10px] font-semibold tracking-[0.3em] uppercase text-white/25 mb-1.5 mt-2">
@@ -129,10 +133,10 @@ export default function ProductionPage() {
             {o.quantity > 1 && <p className="text-xs text-white/30">{o.quantity} шт.</p>}
             {o.desiredDate && (
               <p className="text-xs text-white/30">
-                Срок: {new Date(o.desiredDate).toLocaleDateString('ru-RU')}
+                {tt('Срок')}: {new Date(o.desiredDate).toLocaleDateString('ru-RU')}
               </p>
             )}
-            {o.notes && <p className="text-xs text-white/30">Заметки: {o.notes}</p>}
+            {o.notes && <p className="text-xs text-white/30">{tt('Примечание:')} {o.notes}</p>}
             {o.isCustom && o.price && (
               <p className="text-xs text-white/50 font-bold">
                 {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'KZT', maximumFractionDigits: 0 }).format(o.price)}
@@ -145,13 +149,13 @@ export default function ProductionPage() {
           {isFree && (
             <button onClick={() => claim(o)} disabled={busy === busyKey}
               className="flex-1 py-3.5 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/92 transition-colors disabled:opacity-40">
-              {busy === busyKey ? '...' : 'Взять'}
+              {busy === busyKey ? '...' : tt('Взять')}
             </button>
           )}
           {isMine && o.status === 'accepted' && (
             <button onClick={() => unclaim(o)} disabled={busy === busyKey}
               className="px-4 py-3.5 border border-white/12 text-[10px] font-bold uppercase tracking-[0.15em] text-white/35 hover:border-white/30 hover:text-white/60 transition-colors disabled:opacity-30">
-              {busy === busyKey ? '...' : 'Отдать'}
+              {busy === busyKey ? '...' : tt('Отдать')}
             </button>
           )}
           {isMine && nextStatus && (
@@ -162,7 +166,7 @@ export default function ProductionPage() {
           )}
           {isMine && o.status === 'ready' && (
             <div className="flex-1 py-3.5 border border-white/15 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 text-center">
-              Готово — ожидает выдачи
+              {tt('Готово — ожидает выдачи')}
             </div>
           )}
         </div>
@@ -179,17 +183,17 @@ export default function ProductionPage() {
       <nav className="fixed top-0 left-0 right-0 z-40 bg-[#080808] border-b border-white/8 px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <span className="text-sm font-black tracking-[0.35em] uppercase">AVISHU</span>
-          <span className="text-xs font-semibold tracking-[0.2em] uppercase text-white/20">Цех</span>
+          <span className="text-xs font-semibold tracking-[0.2em] uppercase text-white/20">{tt('Цех')}</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-white' : 'bg-white/15'}`} />
             <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/25">
-              {wsConnected ? 'Live' : 'Нет связи'}
+              {wsConnected ? 'Live' : tt('Нет связи')}
             </span>
           </div>
           <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/25 hover:text-white/60 transition-colors">
-            Выйти
+            {tt('Выйти')}
           </button>
           <button onClick={() => navigate('/app/profile')}
             className="group w-8 h-8 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors">
@@ -203,13 +207,13 @@ export default function ProductionPage() {
 
       <div className="border-b border-white/8 px-6 py-6 flex items-end justify-between mt-[82px]">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Рабочее место</p>
+          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">{tt('Рабочее место')}</p>
           <div className="flex items-baseline gap-4">
             <span className="text-5xl font-black leading-none">{myCount}</span>
             <span className="text-sm text-white/30 font-medium">
-              {totalActive > 0 && `${totalActive} в работе`}
+              {totalActive > 0 && `${totalActive} ${tt('в работе')}`}
               {totalActive > 0 && totalDone > 0 && ' · '}
-              {totalDone > 0 && `${totalDone} готово`}
+              {totalDone > 0 && `${totalDone} ${tt('Готово').toLowerCase()}`}
             </span>
           </div>
         </div>
@@ -219,19 +223,19 @@ export default function ProductionPage() {
       <div className="max-w-xl mx-auto px-6 py-8 pb-28 space-y-4">
         {tab === 'free' && (
           freeAll.length === 0
-            ? <div className="py-24 text-center text-sm text-white/20">Свободных заказов нет</div>
+            ? <div className="py-24 text-center text-sm text-white/20">{tt('Свободных заказов нет')}</div>
             : freeAll.map(o => <OrderCard key={key(o)} o={o} />)
         )}
         {tab === 'mine' && (
           myAll.length === 0
-            ? <div className="py-24 text-center text-sm text-white/20">Нет взятых заказов</div>
+            ? <div className="py-24 text-center text-sm text-white/20">{tt('Нет взятых заказов')}</div>
             : myAll.map(o => <OrderCard key={key(o)} o={o} />)
         )}
       </div>
 
       <BottomNav items={[
-        { id: 'free', icon: Icons.inbox,    label: `Свободные${freeCount ? ` · ${freeCount}` : ''}`, active: tab === 'free', onClick: () => setTab('free') },
-        { id: 'mine', icon: Icons.scissors, label: `Мои${myCount ? ` · ${myCount}` : ''}`,           active: tab === 'mine', onClick: () => setTab('mine') },
+        { id: 'free', icon: Icons.inbox,    label: `${tt('Свободные')}${freeCount ? ` · ${freeCount}` : ''}`, active: tab === 'free', onClick: () => setTab('free') },
+        { id: 'mine', icon: Icons.scissors, label: `${tt('Мои')}${myCount ? ` · ${myCount}` : ''}`,           active: tab === 'mine', onClick: () => setTab('mine') },
       ]} />
     </div>
   );

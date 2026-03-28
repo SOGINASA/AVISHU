@@ -4,6 +4,8 @@ import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../i18n';
 
 const STEPS = [
   { key: 'placed',    label: 'Оформлен',  desc: 'Ожидает подтверждения' },
@@ -94,6 +96,8 @@ function ShopModal({ item, onClose, onAddToCart }) {
   const [date, setDate] = useState('');
   const [open, setOpen] = useState(false);
   const [added, setAdded] = useState(false);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => { const t = setTimeout(() => setOpen(true), 15); return () => clearTimeout(t); }, []);
 
@@ -116,13 +120,13 @@ function ShopModal({ item, onClose, onAddToCart }) {
           {!item.imageUrl && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <p className="text-[8px] font-bold tracking-[0.5em] uppercase text-white/15">AVISHU</p>
-              <p className="text-[9px] font-semibold tracking-[0.3em] uppercase text-white/30">{CAT_RU[item.category] || item.category}</p>
+              <p className="text-[9px] font-semibold tracking-[0.3em] uppercase text-white/30">{tt(CAT_RU[item.category] || item.category)}</p>
             </div>
           )}
         </div>
 
         <div className="p-7">
-          <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/25 mb-1">{CAT_RU[item.category] || item.category}</p>
+          <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/25 mb-1">{tt(CAT_RU[item.category] || item.category)}</p>
           <h2 className="text-xl font-black uppercase tracking-tight leading-tight mb-1">{item.name}</h2>
           <p className="text-2xl font-black mb-4">{fmt(item.price)}</p>
 
@@ -132,14 +136,14 @@ function ShopModal({ item, onClose, onAddToCart }) {
 
           {item.isPreorder && (
             <div className="mb-4">
-              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Желаемая дата</p>
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Желаемая дата')}</p>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
                 className="w-full bg-transparent border-b border-white/15 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors" />
             </div>
           )}
 
           <div className="flex items-center justify-between mb-6">
-            <span className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30">Количество</span>
+            <span className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30">{tt('Количество')}</span>
             <QtyRow qty={qty} onChange={v => setQty(Math.max(1, v))} />
           </div>
 
@@ -152,7 +156,7 @@ function ShopModal({ item, onClose, onAddToCart }) {
               className={`flex-1 text-xs font-black uppercase tracking-[0.2em] py-4 transition-colors ${
                 added ? 'bg-white/15 text-white/60' : 'bg-white text-black hover:bg-white/92 active:bg-white/85'
               }`}>
-              {added ? '✓ Добавлено' : `В корзину · ${fmt(item.price * qty)}`}
+              {added ? `✓ ${tt('Добавлено')}` : `${tt('В корзину')} · ${fmt(item.price * qty)}`}
             </button>
           </div>
         </div>
@@ -169,6 +173,8 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState(null);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   const { checkoutCart } = useOrderStore();
 
@@ -199,9 +205,9 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
   const totalQty = items.reduce((s, i) => s + i.qty, 0);
 
   const pay = async () => {
-    if (cardNum.replace(/\s/g, '').length < 16) { setErr('Введите полный номер карты'); return; }
-    if (!expOk(expiry)) { setErr('Срок действия карты истёк или введён неверно'); return; }
-    if (cvv.length < 3) { setErr('Введите CVV'); return; }
+    if (cardNum.replace(/\s/g, '').length < 16) { setErr(tt('Введите полный номер карты')); return; }
+    if (!expOk(expiry)) { setErr(tt('Срок действия карты истёк или введён неверно')); return; }
+    if (cvv.length < 3) { setErr(tt('Введите CVV')); return; }
     setErr('');
     setStep('processing');
     await new Promise(r => setTimeout(r, 2400));
@@ -219,7 +225,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
         {step === 'card' && (
           <div className="p-7">
             <div className="mb-6">
-              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">Оплата заказа</p>
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('Оплата заказа')}</p>
               <p className="text-2xl font-black">{fmt(total)}</p>
               <p className="text-[10px] text-white/30 mt-1">{items.length} поз. · {totalQty} шт.</p>
             </div>
@@ -236,14 +242,14 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
 
             <div className="space-y-5 mb-6">
               <div>
-                <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Номер карты</p>
+                <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Номер карты')}</p>
                 <input value={cardNum} onChange={e => setCardNum(fmtNum(e.target.value))}
                   placeholder="0000 0000 0000 0000" inputMode="numeric"
                   className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-base font-mono tracking-[0.15em] outline-none focus:border-white/45 transition-colors placeholder-white/12" />
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Срок</p>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Срок')}</p>
                   <input value={expiry} onChange={e => setExpiry(fmtExp(e.target.value))}
                     placeholder="ММ/ГГ" inputMode="numeric"
                     className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm font-mono outline-none focus:border-white/45 transition-colors placeholder-white/12" />
@@ -266,7 +272,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
               </button>
               <button onClick={pay}
                 className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors">
-                Оплатить · {fmt(total)}
+                {tt('Оплатить')} · {fmt(total)}
               </button>
             </div>
 
@@ -280,8 +286,8 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
               <div className="absolute inset-0 border-2 border-transparent border-t-white rounded-full animate-spin" />
             </div>
             <div className="text-center">
-              <p className="text-xs font-black uppercase tracking-[0.35em]">Обработка</p>
-              <p className="text-[10px] text-white/30 mt-2 tracking-wider">Пожалуйста, подождите</p>
+              <p className="text-xs font-black uppercase tracking-[0.35em]">{tt('Обработка')}</p>
+              <p className="text-[10px] text-white/30 mt-2 tracking-wider">{tt('Пожалуйста, подождите')}</p>
             </div>
           </div>
         )}
@@ -292,7 +298,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
               <span className="text-xl font-black">✓</span>
             </div>
             <div className="text-center">
-              <p className="text-base font-black uppercase tracking-[0.25em] mb-1">Оплачено</p>
+              <p className="text-base font-black uppercase tracking-[0.25em] mb-1">{tt('Оплачено')}</p>
               <p className="text-2xl font-black">{fmt(total)}</p>
             </div>
             <div className="w-full space-y-1">
@@ -310,7 +316,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
               ))}
             </div>
             <div className="w-full border border-white/10 bg-white/[0.02] px-5 py-4 text-center">
-              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">Начислено</p>
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('Начислено')}</p>
               <p className="text-3xl font-black">+{result.succeeded.reduce((s, o) => s + (o.quantity || 1) * 100, 0)}</p>
               <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest">AVISHU Points</p>
             </div>
@@ -329,12 +335,14 @@ function CustomOrderModal({ onClose, onDone }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(false);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => { const t = setTimeout(() => setOpen(true), 15); return () => clearTimeout(t); }, []);
   const close = () => { if (busy) return; setOpen(false); setTimeout(onClose, 280); };
 
   const submit = async () => {
-    if (!title.trim()) { setErr('Укажите название'); return; }
+    if (!title.trim()) { setErr(tt('Укажите название')); return; }
     setErr('');
     setBusy(true);
     try {
@@ -359,30 +367,30 @@ function CustomOrderModal({ onClose, onDone }) {
         onClick={e => e.stopPropagation()}>
         <div className="p-7 space-y-5">
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">Свой заказ</p>
-            <p className="text-xs text-white/35">Опишите что хотите пошить. Менеджер свяжется с вами и назначит цену.</p>
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('Свой заказ')}</p>
+            <p className="text-xs text-white/35">{tt('Опишите что хотите пошить. Менеджер свяжется с вами и назначит цену.')}</p>
           </div>
 
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Название *</p>
+            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Название *')}</p>
             <input value={title} onChange={e => setTitle(e.target.value)}
-              placeholder="Напр: Пальто с поясом, размер M"
+              placeholder={tt('Напр: Пальто с поясом, размер M')}
               className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
           </div>
 
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Детали</p>
+            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Детали')}</p>
             <textarea value={description} onChange={e => setDescription(e.target.value)}
-              placeholder="Материал, цвет, особые пожелания..."
+              placeholder={tt('Материал, цвет, особые пожелания...')}
               rows={3}
               className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15 resize-none" />
           </div>
 
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Фото (опционально)</p>
+            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Фото (опционально)')}</p>
             <label className="flex items-center gap-3 cursor-pointer group">
               <span className="border border-white/12 group-hover:border-white/30 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">
-                {photo ? photo.name : 'Прикрепить'}
+                {photo ? photo.name : tt('Прикрепить')}
               </span>
               <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
                 onChange={e => {
@@ -404,7 +412,7 @@ function CustomOrderModal({ onClose, onDone }) {
             </button>
             <button onClick={submit} disabled={busy}
               className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors disabled:opacity-40">
-              {busy ? '...' : 'Отправить заказ'}
+              {busy ? '...' : tt('Отправить заказ')}
             </button>
           </div>
         </div>
@@ -420,6 +428,8 @@ function CustomPayModal({ order, onClose, onDone }) {
   const [cvv, setCvv] = useState('');
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(false);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => { const t = setTimeout(() => setOpen(true), 15); return () => clearTimeout(t); }, []);
 
@@ -435,9 +445,9 @@ function CustomPayModal({ order, onClose, onDone }) {
   };
 
   const pay = async () => {
-    if (cardNum.replace(/\s/g, '').length < 16) { setErr('Введите полный номер карты'); return; }
-    if (!expOk(expiry)) { setErr('Срок действия карты истёк или введён неверно'); return; }
-    if (cvv.length < 3) { setErr('Введите CVV'); return; }
+    if (cardNum.replace(/\s/g, '').length < 16) { setErr(tt('Введите полный номер карты')); return; }
+    if (!expOk(expiry)) { setErr(tt('Срок действия карты истёк или введён неверно')); return; }
+    if (cvv.length < 3) { setErr(tt('Введите CVV')); return; }
     setErr('');
     setStep('processing');
     await new Promise(r => setTimeout(r, 2400));
@@ -463,20 +473,20 @@ function CustomPayModal({ order, onClose, onDone }) {
         {step === 'card' && (
           <div className="p-7">
             <div className="mb-6">
-              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">Оплата заказа</p>
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('Оплата заказа')}</p>
               <p className="text-sm font-black uppercase tracking-wide mb-2">{order.title}</p>
               <p className="text-2xl font-black">{fmtPrice(order.price)}</p>
             </div>
             <div className="space-y-5 mb-6">
               <div>
-                <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Номер карты</p>
+                <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Номер карты')}</p>
                 <input value={cardNum} onChange={e => setCardNum(fmtNum(e.target.value))}
                   placeholder="0000 0000 0000 0000" inputMode="numeric"
                   className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-base font-mono tracking-[0.15em] outline-none focus:border-white/45 transition-colors placeholder-white/12" />
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Срок</p>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Срок')}</p>
                   <input value={expiry} onChange={e => setExpiry(fmtExp(e.target.value))}
                     placeholder="ММ/ГГ" inputMode="numeric"
                     className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm font-mono outline-none focus:border-white/45 transition-colors placeholder-white/12" />
@@ -495,7 +505,7 @@ function CustomPayModal({ order, onClose, onDone }) {
                 className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 hover:border-white/20 transition-colors">←</button>
               <button onClick={pay}
                 className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors">
-                Оплатить · {fmtPrice(order.price)}
+                {tt('Оплатить')} · {fmtPrice(order.price)}
               </button>
             </div>
           </div>
@@ -508,8 +518,8 @@ function CustomPayModal({ order, onClose, onDone }) {
               <div className="absolute inset-0 border-2 border-transparent border-t-white rounded-full animate-spin" />
             </div>
             <div className="text-center">
-              <p className="text-xs font-black uppercase tracking-[0.35em]">Обработка</p>
-              <p className="text-[10px] text-white/30 mt-2 tracking-wider">Пожалуйста, подождите</p>
+              <p className="text-xs font-black uppercase tracking-[0.35em]">{tt('Обработка')}</p>
+              <p className="text-[10px] text-white/30 mt-2 tracking-wider">{tt('Пожалуйста, подождите')}</p>
             </div>
           </div>
         )}
@@ -520,7 +530,7 @@ function CustomPayModal({ order, onClose, onDone }) {
               <span className="text-xl font-black">✓</span>
             </div>
             <div className="text-center">
-              <p className="text-base font-black uppercase tracking-[0.25em] mb-1">Оплачено</p>
+              <p className="text-base font-black uppercase tracking-[0.25em] mb-1">{tt('Оплачено')}</p>
               <p className="text-sm text-white/50">{order.title}</p>
               <p className="text-2xl font-black mt-2">{fmtPrice(order.price)}</p>
             </div>
@@ -545,6 +555,8 @@ export default function ClientPage() {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customPayOrder, setCustomPayOrder] = useState(null);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => {
     connectWs();
@@ -582,8 +594,8 @@ export default function ClientPage() {
       {tab === 'home' && (
         <div className="px-5 pt-[80px] pb-28">
           <div className="mb-8">
-            <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">Добро пожаловать</p>
-            <h1 className="text-4xl font-black uppercase tracking-tight leading-none">{user?.full_name?.split(' ')[0] || 'Клиент'}</h1>
+            <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">{tt('Добро пожаловать')}</p>
+            <h1 className="text-4xl font-black uppercase tracking-tight leading-none">{user?.full_name?.split(' ')[0] || tt('Клиент')}</h1>
           </div>
 
           <div className="border border-white/8 bg-[#080808] px-5 py-5 mb-4">
@@ -615,7 +627,7 @@ export default function ClientPage() {
                 <rect x="0.5" y="10" width="6.5" height="6.5" stroke="currentColor" strokeWidth="0.75"/>
                 <rect x="10" y="10" width="6.5" height="6.5" stroke="currentColor" strokeWidth="0.75"/>
               </svg>
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">Каталог</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">{tt('Каталог')}</span>
             </button>
             <button onClick={() => setTab('orders')}
               className="border border-white/10 bg-[#080808] py-5 flex flex-col items-center gap-2 hover:border-white/25 transition-colors">
@@ -630,7 +642,7 @@ export default function ClientPage() {
                   </div>
                 )}
               </div>
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">Заказы</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">{tt('Заказы')}</span>
             </button>
           </div>
 
@@ -649,7 +661,7 @@ export default function ClientPage() {
                         <p className="text-xs font-black uppercase tracking-wide">
                           {o.isCustom ? o.title : (o.product?.name || `Заказ #${o.id}`)}
                         </p>
-                        <p className="text-[10px] text-white/30 mt-0.5">{step.label}</p>
+                        <p className="text-[10px] text-white/30 mt-0.5">{tt(step.label)}</p>
                       </div>
                       <span className="text-white/20 text-xs">→</span>
                     </div>
@@ -662,7 +674,7 @@ export default function ClientPage() {
           <div className="mt-8 pt-8 border-t border-white/8">
             <button onClick={() => setShowCustomForm(true)}
               className="w-full border border-white/12 py-5 text-xs font-black uppercase tracking-[0.3em] text-white/40 hover:border-white/30 hover:text-white/70 transition-all">
-              + Заказать своё изделие
+              + {tt('Заказать своё изделие')}
             </button>
           </div>
         </div>
@@ -672,13 +684,14 @@ export default function ClientPage() {
         <div className="px-5 pt-[80px] pb-28">
           <div className="mb-8">
             <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">Коллекция 2024</p>
+            <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">{tt('Коллекция 2024')}</p>
             <h1 className="text-5xl font-black uppercase tracking-tight leading-none">AVISHU</h1>
             <p className="text-[10px] font-semibold tracking-[0.35em] uppercase text-white/22 mt-2">Premium Fashion · Kazakhstan</p>
           </div>
           {loading ? (
-            <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
+            <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">{tt('Загрузка')}</div>
           ) : products.length === 0 ? (
-            <div className="py-20 text-center text-sm text-white/20">Товаров нет. Добавьте через Admin.</div>
+            <div className="py-20 text-center text-sm text-white/20">{tt('Товаров нет. Добавьте через Admin.')}</div>
           ) : (
             <div className="grid grid-cols-2 gap-x-4 gap-y-8">
               {products.map(p => (
@@ -689,10 +702,10 @@ export default function ClientPage() {
           <div className="mt-10 pt-8 border-t border-white/8">
             <button onClick={() => setShowCustomForm(true)}
               className="w-full border border-white/12 py-5 text-xs font-black uppercase tracking-[0.3em] text-white/40 hover:border-white/30 hover:text-white/70 transition-all">
-              + Заказать своё изделие
+              + {tt('Заказать своё изделие')}
             </button>
             <p className="text-[9px] text-center text-white/20 mt-3 tracking-[0.2em] uppercase">
-              Индивидуальный пошив по вашим параметрам
+              {tt('Индивидуальный пошив по вашим параметрам')}
             </p>
           </div>
         </div>
@@ -703,15 +716,15 @@ export default function ClientPage() {
           {cart.length === 0 ? (
             <div className="py-24 text-center">
               <p className="text-4xl font-black text-white/6 mb-4">0</p>
-              <p className="text-sm text-white/25 mb-6">Корзина пуста</p>
+              <p className="text-sm text-white/25 mb-6">{tt('Корзина пуста')}</p>
               <button onClick={() => setTab('catalog')}
                 className="text-xs font-bold uppercase tracking-[0.2em] text-white underline underline-offset-4 hover:text-white/60 transition-colors">
-                В каталог
+                {tt('В каталог')}
               </button>
             </div>
           ) : (
             <>
-              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">Корзина</p>
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">{tt('Корзина')}</p>
               <div className="space-y-0 divide-y divide-white/6 border border-white/8 mb-6">
                 {cart.map(item => (
                   <div key={item.product.id} className="flex items-center gap-4 p-4">
@@ -721,7 +734,7 @@ export default function ClientPage() {
                       <p className="text-xs font-black uppercase tracking-wide leading-tight truncate">{item.product.name}</p>
                       <p className="text-[10px] text-white/30 mt-0.5">{fmt(item.product.price)} × {item.qty}</p>
                       {item.desiredDate && (
-                        <p className="text-[9px] text-white/25 mt-0.5">Дата: {item.desiredDate}</p>
+                        <p className="text-[9px] text-white/25 mt-0.5">{tt('Дата')}: {item.desiredDate}</p>
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -738,12 +751,13 @@ export default function ClientPage() {
 
               <div className="border border-white/8 px-5 py-4 flex items-center justify-between mb-5">
                 <span className="text-[10px] font-semibold tracking-[0.3em] uppercase text-white/40">Итого</span>
+                <span className="text-[10px] font-semibold tracking-[0.3em] uppercase text-white/40">{tt('Итого')}</span>
                 <span className="text-xl font-black">{fmt(cartTotal)}</span>
               </div>
 
               <button onClick={() => setCheckout(true)}
                 className="w-full bg-white text-black text-xs font-black uppercase tracking-[0.3em] py-5 hover:bg-white/92 active:bg-white/85 transition-colors">
-                Оформить · {fmt(cartTotal)}
+                {tt('Оформить')} · {fmt(cartTotal)}
               </button>
             </>
           )}
@@ -772,16 +786,16 @@ export default function ClientPage() {
             </div>
           </div>
 
-          <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">Мои заказы</p>
+          <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">{tt('Мои заказы')}</p>
 
           {ordersLoading ? (
-            <div className="py-16 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
+            <div className="py-16 text-center text-xs text-white/20 tracking-widest uppercase">{tt('Загрузка')}</div>
           ) : allOrders.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm text-white/25 mb-6">Заказов пока нет</p>
+              <p className="text-sm text-white/25 mb-6">{tt('Заказов пока нет')}</p>
               <button onClick={() => setTab('catalog')}
                 className="text-xs font-bold uppercase tracking-[0.2em] text-white underline underline-offset-4 hover:text-white/60 transition-colors">
-                В каталог
+                {tt('В каталог')}
               </button>
             </div>
           ) : (
@@ -807,7 +821,7 @@ export default function ClientPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           {o.isCustom && (
-                            <span className="text-[8px] font-bold tracking-[0.3em] uppercase text-white/25 border border-white/10 px-1.5 py-0.5 mr-1">Своё</span>
+                            <span className="text-[8px] font-bold tracking-[0.3em] uppercase text-white/25 border border-white/10 px-1.5 py-0.5 mr-1">{tt('Своё')}</span>
                           )}
                           <p className="text-sm font-black uppercase tracking-wide leading-tight truncate">
                             {o.isCustom ? o.title : (o.product?.name || `Заказ #${o.id}`)}
@@ -828,19 +842,19 @@ export default function ClientPage() {
                     {o.isCustom && o.status === 'pending_payment' && (
                       <div className="px-4 py-3 bg-white/[0.03] border-b border-white/6 flex items-center justify-between">
                         <div>
-                          <p className="text-xs font-bold text-white/70">Назначена цена: {fmt(o.price)}</p>
-                          <p className="text-[10px] text-white/35">Оплатите для продолжения</p>
+                          <p className="text-xs font-bold text-white/70">{tt('Назначена цена')}: {fmt(o.price)}</p>
+                          <p className="text-[10px] text-white/35">{tt('Оплатите для продолжения')}</p>
                         </div>
                         <button onClick={() => setCustomPayOrder(o)}
                           className="bg-white text-black text-[10px] font-black uppercase tracking-[0.15em] px-4 py-2 hover:bg-white/92 transition-colors">
-                          Оплатить
+                          {tt('Оплатить')}
                         </button>
                       </div>
                     )}
 
                     {o.isCustom && o.status === 'pending_review' && (
                       <div className="px-4 py-2.5 bg-white/[0.02] border-b border-white/6">
-                        <p className="text-[10px] text-white/35">Ожидает оценки менеджера</p>
+                        <p className="text-[10px] text-white/35">{tt('Ожидает оценки менеджера')}</p>
                       </div>
                     )}
 
@@ -859,8 +873,8 @@ export default function ClientPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs font-black uppercase tracking-[0.15em]">{step.label}</p>
-                          <p className="text-[10px] text-white/40 mt-0.5">{step.desc}</p>
+                          <p className="text-xs font-black uppercase tracking-[0.15em]">{tt(step.label)}</p>
+                          <p className="text-[10px] text-white/40 mt-0.5">{tt(step.desc)}</p>
                         </div>
                         <p className="text-[9px] text-white/20 font-medium">{fmtDate(o.updatedAt)}</p>
                       </div>
@@ -884,20 +898,20 @@ export default function ClientPage() {
                         )}
                         {o.desiredDate && (
                           <p className="text-[10px] text-white/30">
-                            Желаемая дата: {new Date(o.desiredDate).toLocaleDateString('ru-RU')}
+                            {tt('Желаемая дата')}: {new Date(o.desiredDate).toLocaleDateString('ru-RU')}
                           </p>
                         )}
                         {o.notes && (
-                          <p className="text-[10px] text-white/30">Примечание: {o.notes}</p>
+                          <p className="text-[10px] text-white/30">{tt('Примечание:')} {o.notes}</p>
                         )}
                         <div className="pt-2 space-y-1">
                           {steps.map((s, i) => (
                             <div key={s.key} className={`flex items-center gap-3 ${i > idx ? 'opacity-25' : ''}`}>
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i <= idx ? 'bg-white' : 'bg-white/20'}`} />
                               <p className={`text-[10px] font-semibold uppercase tracking-wider ${i === idx ? 'text-white' : 'text-white/40'}`}>
-                                {s.label}
+                                {tt(s.label)}
                               </p>
-                              <p className="text-[9px] text-white/25">{s.desc}</p>
+                              <p className="text-[9px] text-white/25">{tt(s.desc)}</p>
                             </div>
                           ))}
                         </div>
@@ -954,10 +968,10 @@ export default function ClientPage() {
       )}
 
       <BottomNav items={[
-        { id: 'home',    icon: Icons.home,  label: 'Главная', active: tab === 'home',    onClick: () => setTab('home') },
-        { id: 'catalog', icon: Icons.grid,  label: 'Каталог', active: tab === 'catalog', onClick: () => setTab('catalog') },
-        { id: 'cart',    icon: Icons.bag,   label: 'Корзина', active: tab === 'cart',    onClick: () => setTab('cart'), badge: cartCount },
-        { id: 'orders',  icon: Icons.list,  label: 'Заказы',  active: tab === 'orders',  onClick: () => setTab('orders') },
+        { id: 'home',    icon: Icons.home,  label: tt('Главная'), active: tab === 'home',    onClick: () => setTab('home') },
+        { id: 'catalog', icon: Icons.grid,  label: tt('Каталог'), active: tab === 'catalog', onClick: () => setTab('catalog') },
+        { id: 'cart',    icon: Icons.bag,   label: tt('Корзина'), active: tab === 'cart',    onClick: () => setTab('cart'), badge: cartCount },
+        { id: 'orders',  icon: Icons.list,  label: tt('Заказы'),  active: tab === 'orders',  onClick: () => setTab('orders') },
       ]} />
     </div>
   );

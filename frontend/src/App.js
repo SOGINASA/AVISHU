@@ -15,9 +15,6 @@ import ProductionPage from './pages/ProductionPage';
 import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 
-// Роли пользователей
-const VALID_ROLES = ['client', 'franchisee', 'production', 'admin'];
-
 // Маппинг user_type -> страница
 const ROLE_ROUTES = {
   client: '/app/client',

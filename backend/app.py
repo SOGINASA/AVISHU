@@ -25,6 +25,7 @@ from flask_jwt_extended.exceptions import JWTExtendedException
 from werkzeug.exceptions import HTTPException
 from services import websocket_service
 from services.scheduler_service import init_scheduler
+from utils.i18n import detect_language, translate_payload
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -73,7 +74,7 @@ def create_app():
          supports_credentials=True, 
          origins=Config.CORS_ORIGINS,
          methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+            allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept-Language', 'X-Language'],
          expose_headers=['Content-Length', 'X-Request-Id'],
          max_age=3600)
 
@@ -94,9 +95,26 @@ def create_app():
             if origin and origin in Config.CORS_ORIGINS:
                 response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept-Language, X-Language'
             response.headers['Access-Control-Max-Age'] = '3600'
             return response
+
+    @app.after_request
+    def localize_json_response(response):
+        if response.status_code == 204:
+            return response
+        if not response.mimetype or 'application/json' not in response.mimetype:
+            return response
+
+        payload = response.get_json(silent=True)
+        if payload is None:
+            return response
+
+        lang = detect_language()
+        localized = translate_payload(payload, lang)
+        response.set_data(json.dumps(localized, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
 
     with app.app_context():
         db.create_all()

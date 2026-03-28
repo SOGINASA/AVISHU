@@ -1,9 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-black text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
@@ -15,17 +18,17 @@ export default function HomePage() {
           {user ? (
             <button onClick={() => navigate('/app')}
               className="text-xs font-semibold tracking-[0.15em] uppercase text-white/70 hover:text-white transition-colors">
-              Открыть приложение →
+              {t('home.openApp')}
             </button>
           ) : (
             <>
               <button onClick={() => navigate('/login')}
                 className="text-xs font-semibold tracking-[0.1em] uppercase text-white/50 hover:text-white transition-colors">
-                Войти
+                {t('home.login')}
               </button>
               <button onClick={() => navigate('/register')}
                 className="px-6 py-3 bg-white text-black text-xs font-bold tracking-[0.15em] uppercase hover:bg-white/90 transition-colors">
-                Начать
+                {t('home.start')}
               </button>
             </>
           )}
@@ -38,22 +41,21 @@ export default function HomePage() {
           Franchise Management Superapp
         </p>
         <h1 className="text-[clamp(52px,8vw,96px)] font-black uppercase leading-[0.95] tracking-tight mb-10">
-          ОДИН<br />ЭКРАН<br />
-          <span className="text-white/25">ДЛЯ ВСЕХ</span>
+          {t('home.headlineTop')}<br />{t('home.headlineMiddle')}<br />
+          <span className="text-white/25">{t('home.headlineBottom')}</span>
         </h1>
         <div className="w-10 h-px bg-white/30 mb-10" />
         <p className="text-base text-white/55 leading-relaxed max-w-md mb-14 font-normal">
-          Единое приложение для клиентов, франчайзи и производства AVISHU.
-          Заказ создаётся в витрине — и в реальном времени попадает в цех.
+          {t('home.heroBody')}
         </p>
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/register')}
             className="px-10 py-4 bg-white text-black text-xs font-bold tracking-[0.2em] uppercase hover:bg-white/90 transition-colors">
-            ПОПРОБОВАТЬ
+            {t('home.try')}
           </button>
           <button onClick={() => navigate('/login')}
             className="px-10 py-4 border border-white/25 text-xs font-semibold tracking-[0.2em] uppercase text-white/60 hover:border-white/60 hover:text-white transition-colors">
-            ВОЙТИ
+            {t('home.login')}
           </button>
         </div>
       </section>
@@ -64,18 +66,18 @@ export default function HomePage() {
           {[
             {
               tag: 'B2C',
-              role: 'КЛИЕНТ',
-              desc: 'Каталог коллекции, оформление заказа и предзаказа, визуальный трекинг — от пошива до доставки.',
+              role: t('home.roles.client'),
+              desc: t('home.roles.clientDesc'),
             },
             {
               tag: 'B2B',
-              role: 'ФРАНЧАЙЗИ',
-              desc: 'Дашборд метрик, очередь входящих заказов в реальном времени, управление статусами.',
+              role: t('home.roles.franchisee'),
+              desc: t('home.roles.franchiseeDesc'),
             },
             {
               tag: 'ЦЕХ',
-              role: 'ПРОИЗВОДСТВО',
-              desc: 'Промышленный интерфейс для мастера. Очередь задач и одна большая кнопка — ЗАВЕРШИТЬ.',
+              role: t('home.roles.production'),
+              desc: t('home.roles.productionDesc'),
             },
           ].map((r, i) => (
             <div key={r.role}
@@ -93,14 +95,14 @@ export default function HomePage() {
       {/* ── PROCESS ── */}
       <section className="px-8 py-20 border-b border-white/8">
         <p className="text-[10px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-14">
-          Сквозной процесс
+          {t('home.processTitle')}
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
           {[
-            { n: '01', label: 'Клиент\nоформляет заказ' },
-            { n: '02', label: 'Франчайзи\nпринимает' },
-            { n: '03', label: 'Цех\nшьёт изделие' },
-            { n: '04', label: 'Клиент\nполучает готово' },
+            { n: '01', label: t('home.steps.s1') },
+            { n: '02', label: t('home.steps.s2') },
+            { n: '03', label: t('home.steps.s3') },
+            { n: '04', label: t('home.steps.s4') },
           ].map((step) => (
             <div key={step.n}>
               <div className="text-xs font-black text-white/20 mb-3 tracking-widest">{step.n}</div>
@@ -116,22 +118,25 @@ export default function HomePage() {
       <section className="px-8 py-20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
         <div>
           <h2 className="text-3xl font-black uppercase tracking-tight mb-3">
-            ГОТОВЫ НАЧАТЬ?
+            {t('home.ctaTitle')}
           </h2>
           <p className="text-sm text-white/40 font-normal">
-            Регистрация занимает 30 секунд.
+            {t('home.ctaBody')}
           </p>
         </div>
         <button onClick={() => navigate('/register')}
           className="flex-shrink-0 px-10 py-4 bg-white text-black text-xs font-bold tracking-[0.2em] uppercase hover:bg-white/90 transition-colors">
-          СОЗДАТЬ АККАУНТ
+          {t('home.ctaButton')}
         </button>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-white/8 px-8 py-5 flex items-center justify-between">
+      <footer className="border-t border-white/8 px-8 py-5 flex items-center justify-between gap-4">
         <span className="text-xs font-semibold tracking-[0.3em] uppercase text-white/25">© AVISHU 2024</span>
-        <span className="text-xs font-normal text-white/20">Premium Fashion Franchise</span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-normal text-white/20">{t('home.footer')}</span>
+          <LanguageSwitcher variant="inline" />
+        </div>
       </footer>
     </div>
   );

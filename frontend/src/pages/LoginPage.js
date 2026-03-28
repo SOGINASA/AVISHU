@@ -4,6 +4,7 @@ import { api } from '../api';
 import useAuthStore from '../stores/useAuthStore';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (user) navigate('/app', { replace: true });
@@ -57,7 +59,7 @@ export default function LoginPage() {
 
   const handleBiometricLogin = async () => {
     if (!email.trim()) {
-      setError('Введите email для биометрической аутентификации');
+      setError(t('loginPage.emailForBiometric'));
       return;
     }
     setError('');
@@ -92,11 +94,11 @@ export default function LoginPage() {
     } catch (err) {
       const msg = err.message || '';
       if (msg.includes('not found') || msg.includes('NotFoundError') || msg.includes('1004') || msg.includes('credentialNotFound')) {
-        setError('Биометрия не настроена. Войдите с паролем и добавьте устройство в Профиле.');
+        setError(t('loginPage.biometricNotConfigured'));
       } else if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
-        setError('Вход отменён');
+        setError(t('loginPage.loginCancelled'));
       } else {
-        setError(msg || 'Ошибка биометрии');
+        setError(msg || t('loginPage.biometricError'));
       }
     } finally {
       setBiometricLoading(false);
@@ -136,7 +138,7 @@ export default function LoginPage() {
               </div>
               <div className="px-5 py-4 flex items-center gap-3">
                 <div className="flex-1">
-                  <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-2.5">Пароль</p>
+                  <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-2.5">{t('loginPage.password')}</p>
                   <input
                     type={showPass ? 'text' : 'password'} value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -146,7 +148,7 @@ export default function LoginPage() {
                 </div>
                 <button type="button" onClick={() => setShowPass(s => !s)}
                   className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/22 hover:text-white/55 transition-colors flex-shrink-0 pb-0.5">
-                  {showPass ? 'Скрыть' : 'Показать'}
+                  {showPass ? t('loginPage.hide') : t('loginPage.show')}
                 </button>
               </div>
             </div>
@@ -157,22 +159,22 @@ export default function LoginPage() {
 
             <button type="submit" disabled={busy}
               className="w-full mt-5 bg-white text-black text-xs font-black uppercase tracking-[0.35em] py-5 hover:bg-white/92 active:bg-white/85 transition-colors disabled:opacity-40">
-              {busy ? '...' : 'ВОЙТИ'}
+              {busy ? '...' : t('loginPage.submit')}
             </button>
           </form>
 
           <p className="text-center mt-8 text-[10px] text-white/25">
-            Нет аккаунта?{' '}
+            {t('loginPage.noAccount')}{' '}
             <Link to="/register"
               className="text-white/55 hover:text-white transition-colors underline underline-offset-4 uppercase tracking-wider font-bold">
-              Регистрация
+              {t('loginPage.register')}
             </Link>
           </p>
 
           {/* Alternative Login Methods */}
           <div className="mt-10 pt-8 border-t border-white/10">
             <p className="text-center text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-5">
-              или войти через
+              {t('loginPage.orLoginVia')}
             </p>
 
             {/* Google OAuth Button */}
@@ -201,7 +203,7 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
               </svg>
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-                {biometricLoading ? '...' : 'Биометрия'}
+                {biometricLoading ? '...' : t('loginPage.biometric')}
               </span>
             </button>
           </div>

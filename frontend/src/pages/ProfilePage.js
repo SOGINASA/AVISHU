@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import { api } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../i18n';
 
 const ROLE_LABELS = {
   client: 'Клиент',
@@ -24,6 +27,8 @@ function fromB64url(str) {
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   const [credentials, setCredentials] = useState([]);
   const [credsLoading, setCredsLoading] = useState(true);
@@ -81,13 +86,13 @@ export default function ProfilePage() {
       };
 
       await api.webauthn.register(credentialData);
-      flash('Биометрия добавлена');
+      flash(tt('Биометрия добавлена'));
       await loadCredentials();
     } catch (err) {
       if (err.name === 'NotAllowedError') {
-        flash('Отменено пользователем', true);
+        flash(tt('Отменено пользователем'), true);
       } else {
-        flash(err.message || 'Ошибка регистрации', true);
+        flash(err.message || tt('Ошибка регистрации'), true);
       }
     } finally {
       setRegistering(false);
@@ -99,9 +104,9 @@ export default function ProfilePage() {
     try {
       await api.webauthn.deleteCredential(credId);
       setCredentials(prev => prev.filter(c => c.id !== credId));
-      flash('Устройство удалено');
+      flash(tt('Устройство удалено'));
     } catch (err) {
-      flash(err.message || 'Ошибка удаления', true);
+      flash(err.message || tt('Ошибка удаления'), true);
     } finally {
       setDeletingId(null);
     }
@@ -120,14 +125,14 @@ export default function ProfilePage() {
           onClick={() => navigate(-1)}
           className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors"
         >
-          ← Назад
+          ← {tt('Назад')}
         </button>
-        <span className="text-xs font-black tracking-[0.35em] uppercase">Профиль</span>
+        <span className="text-xs font-black tracking-[0.35em] uppercase">{tt('Профиль')}</span>
         <button
           onClick={signOut}
           className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors"
         >
-          Выйти
+          {tt('Выйти')}
         </button>
       </nav>
 
@@ -136,7 +141,7 @@ export default function ProfilePage() {
         {/* User info */}
         <div className="border border-white/12">
           <div className="px-5 py-4 border-b border-white/8">
-            <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-3">Аккаунт</p>
+            <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-3">{tt('Аккаунт')}</p>
             <p className="text-lg font-black uppercase tracking-tight leading-tight">
               {user?.full_name || user?.nickname || '—'}
             </p>
@@ -151,8 +156,12 @@ export default function ProfilePage() {
             </div>
           )}
           <div className="px-5 py-4">
-            <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1.5">Роль</p>
-            <p className="text-sm text-white/70">{ROLE_LABELS[user?.user_type] || user?.user_type}</p>
+            <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1.5">{tt('Роль')}</p>
+            <p className="text-sm text-white/70">{tt(ROLE_LABELS[user?.user_type] || user?.user_type)}</p>
+          </div>
+          <div className="px-5 py-4 border-t border-white/8 flex items-center justify-between gap-3">
+            <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30">{tt('Язык')}</p>
+            <LanguageSwitcher variant="inline" />
           </div>
         </div>
 
@@ -160,7 +169,7 @@ export default function ProfilePage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">Биометрия</p>
+              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">{tt('Биометрия')}</p>
               <p className="text-[11px] text-white/40">Face ID, Touch ID, Windows Hello</p>
             </div>
             <button
@@ -168,7 +177,7 @@ export default function ProfilePage() {
               disabled={registering}
               className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
             >
-              {registering ? '...' : '+ Добавить'}
+              {registering ? '...' : `+ ${tt('Добавить')}`}
             </button>
           </div>
 
@@ -185,16 +194,16 @@ export default function ProfilePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
               </svg>
-              <p className="text-[10px] text-white/25 uppercase tracking-wider">Нет устройств</p>
+              <p className="text-[10px] text-white/25 uppercase tracking-wider">{tt('Нет устройств')}</p>
             </div>
           ) : (
             <div className="border border-white/12 divide-y divide-white/8">
               {credentials.map(cred => (
                 <div key={cred.id} className="flex items-center justify-between px-5 py-4">
                   <div>
-                    <p className="text-sm font-semibold">{cred.device_name || 'Устройство'}</p>
+                    <p className="text-sm font-semibold">{cred.device_name || tt('Устройство')}</p>
                     <p className="text-[10px] text-white/30 mt-0.5">
-                      Добавлено {fmtDate(cred.created_at)}
+                      {tt('Добавлено')} {fmtDate(cred.created_at)}
                     </p>
                   </div>
                   <button
@@ -202,7 +211,7 @@ export default function ProfilePage() {
                     disabled={deletingId === cred.id}
                     className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 hover:text-red-400/70 transition-colors disabled:opacity-30 ml-4"
                   >
-                    {deletingId === cred.id ? '...' : 'Удалить'}
+                    {deletingId === cred.id ? '...' : tt('Удалить')}
                   </button>
                 </div>
               ))}
@@ -222,16 +231,16 @@ export default function ProfilePage() {
 
       {user?.user_type === 'client' && (
         <BottomNav items={[
-          { id: 'home',    icon: Icons.home,  label: 'Главная', active: false, onClick: () => navigate('/app/client') },
-          { id: 'catalog', icon: Icons.grid,  label: 'Каталог', active: false, onClick: () => navigate('/app/client') },
-          { id: 'cart',    icon: Icons.bag,   label: 'Корзина', active: false, onClick: () => navigate('/app/client') },
-          { id: 'orders',  icon: Icons.list,  label: 'Заказы',  active: false, onClick: () => navigate('/app/client') },
+          { id: 'home',    icon: Icons.home,  label: tt('Главная'), active: false, onClick: () => navigate('/app/client') },
+          { id: 'catalog', icon: Icons.grid,  label: tt('Каталог'), active: false, onClick: () => navigate('/app/client') },
+          { id: 'cart',    icon: Icons.bag,   label: tt('Корзина'), active: false, onClick: () => navigate('/app/client') },
+          { id: 'orders',  icon: Icons.list,  label: tt('Заказы'),  active: false, onClick: () => navigate('/app/client') },
         ]} />
       )}
       {user?.user_type === 'production' && (
         <BottomNav items={[
-          { id: 'free', icon: Icons.inbox,    label: 'Свободные', active: false, onClick: () => navigate('/app/production') },
-          { id: 'mine', icon: Icons.scissors, label: 'Мои',        active: false, onClick: () => navigate('/app/production') },
+          { id: 'free', icon: Icons.inbox,    label: tt('Свободные'), active: false, onClick: () => navigate('/app/production') },
+          { id: 'mine', icon: Icons.scissors, label: tt('Мои'),        active: false, onClick: () => navigate('/app/production') },
         ]} />
       )}
     </div>

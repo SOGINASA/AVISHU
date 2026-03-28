@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
+import { useTranslation } from 'react-i18next';
 
 export default function OAuthCallbackPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -51,7 +53,7 @@ export default function OAuthCallbackPage() {
             style={{ animationDelay: `${i * 0.12}s` }} />
         ))}
       </div>
-      <div className="text-[10px] tracking-[0.4em] uppercase text-white/30">АВТОРИЗАЦИЯ...</div>
+      <div className="text-[10px] tracking-[0.4em] uppercase text-white/30">{t('oauth.authorizing')}</div>
     </div>
   );
 }

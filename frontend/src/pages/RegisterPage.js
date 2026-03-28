@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import useAuthStore from '../stores/useAuthStore';
-
-const ROLES = [
-  { id: 'client', label: 'КЛИЕНТ', desc: 'Покупка и отслеживание заказов' },
-  { id: 'franchisee', label: 'ФРАНЧАЙЗИ', desc: 'Управление партнёрской точкой' },
-  { id: 'production', label: 'ПРОИЗВОДСТВО', desc: 'Цех — пошив и выполнение заказов' },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { login, user } = useAuthStore();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
   const isOAuth = searchParams.get('oauth') === 'true';
+
+  const ROLES = [
+    { id: 'client', label: t('registerPage.roles.client'), desc: t('registerPage.roles.clientDesc') },
+    { id: 'franchisee', label: t('registerPage.roles.franchisee'), desc: t('registerPage.roles.franchiseeDesc') },
+    { id: 'production', label: t('registerPage.roles.production'), desc: t('registerPage.roles.productionDesc') },
+  ];
   
   const [step, setStep] = useState(isOAuth ? 2 : 1);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'client' });
@@ -77,17 +79,17 @@ export default function RegisterPage() {
         </button>
 
         <div>
-          <div className="text-[10px] tracking-[0.4em] uppercase text-white/30 mb-6">РЕГИСТРАЦИЯ</div>
+          <div className="text-[10px] tracking-[0.4em] uppercase text-white/30 mb-6">{t('registerPage.title')}</div>
           <h2 className="text-5xl font-black uppercase leading-none tracking-tight mb-6">
-            СОЗДАТЬ<br />АККАУНТ
+            {t('registerPage.createAccount').split('\n')[0]}<br />{t('registerPage.createAccount').split('\n')[1]}
           </h2>
           <div className="w-8 h-px bg-white/20 mb-8" />
 
           {/* Steps indicator */}
           <div className="space-y-4">
             {[
-              { n: 1, label: 'ДАННЫЕ', sub: 'Имя, email, пароль' },
-              { n: 2, label: 'РОЛЬ', sub: 'Ваша роль в системе' },
+              { n: 1, label: t('registerPage.stepData'), sub: t('registerPage.stepDataSub') },
+              { n: 2, label: t('registerPage.stepRole'), sub: t('registerPage.stepRoleSub') },
             ].map(({ n, label, sub }) => (
               <div key={n} className="flex items-center gap-4">
                 <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-black border flex-shrink-0 transition-colors ${step >= n ? 'border-white text-white' : 'border-white/20 text-white/20'}`}>
@@ -124,41 +126,41 @@ export default function RegisterPage() {
           </div>
 
           <h1 className="text-2xl font-black uppercase tracking-tight mb-1">
-            {step === 1 ? 'ДАННЫЕ' : 'ВАША РОЛЬ'}
+            {step === 1 ? t('registerPage.stepData') : t('registerPage.yourRole')}
           </h1>
           <p className="text-white/30 text-xs tracking-wide mb-8">
-            Уже есть аккаунт?{' '}
+            {t('registerPage.alreadyHave')}{' '}
             <Link to="/login" className="text-white underline underline-offset-4 hover:text-white/60 transition-colors">
-              ВОЙТИ
+              {t('registerPage.login')}
             </Link>
           </p>
 
           {step === 1 && (
             <form onSubmit={next} className="space-y-4">
               <div>
-                <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">ИМЯ</label>
+                <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">{t('registerPage.name')}</label>
                 <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
                   placeholder="Иванова Елена"
                   className="w-full bg-transparent border border-white/15 text-white placeholder-white/20 px-4 py-3 text-sm outline-none focus:border-white/50 transition-colors"
                   required />
               </div>
               <div>
-                <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">EMAIL</label>
+                <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">{t('registerPage.email')}</label>
                 <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
                   placeholder="your@email.com"
                   className="w-full bg-transparent border border-white/15 text-white placeholder-white/20 px-4 py-3 text-sm outline-none focus:border-white/50 transition-colors"
                   required />
               </div>
               <div>
-                <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">ПАРОЛЬ</label>
+                <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">{t('registerPage.password')}</label>
                 <div className="relative">
                   <input type={showPass ? 'text' : 'password'} value={form.password} onChange={e => set('password', e.target.value)}
-                    placeholder="Минимум 6 символов"
+                    placeholder={t('registerPage.passwordHint')}
                     className="w-full bg-transparent border border-white/15 text-white placeholder-white/20 px-4 py-3 pr-20 text-sm outline-none focus:border-white/50 transition-colors"
                     required minLength={6} />
                   <button type="button" onClick={() => setShowPass(!showPass)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors text-[10px] tracking-widest">
-                    {showPass ? 'СКРЫТЬ' : 'ПОКАЗАТЬ'}
+                    {showPass ? t('loginPage.hide').toUpperCase() : t('loginPage.show').toUpperCase()}
                   </button>
                 </div>
               </div>
@@ -168,7 +170,7 @@ export default function RegisterPage() {
               <div className="pt-2">
                 <button type="submit"
                   className="w-full bg-white text-black font-black uppercase tracking-[0.2em] py-4 text-sm hover:bg-white/90 transition-colors">
-                  ДАЛЕЕ →
+                  {t('registerPage.next')}
                 </button>
               </div>
             </form>
@@ -193,11 +195,11 @@ export default function RegisterPage() {
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setStep(1)}
                   className="px-6 py-4 border border-white/15 text-white/40 text-xs uppercase tracking-widest hover:border-white/30 hover:text-white/70 transition-colors">
-                  ←
+                  {t('registerPage.back')}
                 </button>
                 <button type="submit" disabled={loading}
                   className="flex-1 bg-white text-black font-black uppercase tracking-[0.2em] py-4 text-sm hover:bg-white/90 transition-colors disabled:opacity-40">
-                  {loading ? '...' : 'СОЗДАТЬ АККАУНТ'}
+                  {loading ? '...' : t('registerPage.create')}
                 </button>
               </div>
             </form>

@@ -1,4 +1,6 @@
-export const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { getCurrentLanguage } from './i18n';
+
+export const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export function getWsUrl() {
   return BASE_URL.replace(/^http/, 'ws');
@@ -6,12 +8,23 @@ export function getWsUrl() {
 
 function authHeaders() {
   const token = localStorage.getItem('access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const lang = getCurrentLanguage();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'Accept-Language': lang,
+    'X-Language': lang,
+  };
 }
 
 async function req(path, { headers: extraHeaders = {}, ...options } = {}) {
+  const lang = getCurrentLanguage();
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept-Language': lang,
+      'X-Language': lang,
+      ...extraHeaders,
+    },
     ...options,
   });
   const data = await res.json().catch(() => ({}));
@@ -77,7 +90,11 @@ export const api = {
       const token = localStorage.getItem('access_token');
       return fetch(`${BASE_URL}/api/products/${id}/image`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Accept-Language': getCurrentLanguage(),
+          'X-Language': getCurrentLanguage(),
+        },
         body,
       }).then(async r => {
         const d = await r.json().catch(() => ({}));
@@ -113,7 +130,11 @@ export const api = {
       const token = localStorage.getItem('access_token');
       return fetch(`${BASE_URL}/api/custom-orders/${id}/photo`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Accept-Language': getCurrentLanguage(),
+          'X-Language': getCurrentLanguage(),
+        },
         body,
       }).then(async r => {
         const d = await r.json().catch(() => ({}));

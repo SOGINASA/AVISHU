@@ -4,14 +4,16 @@ import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../i18n';
 
 const FRANCHISEE_NEXT = { placed: 'accepted', ready: 'delivered' };
 
 const STATUS = {
-  placed:    { label: 'Новый',     dot: 'bg-white animate-pulse', badge: 'text-white bg-white/10 border border-white/20' },
+  placed:    { label: 'Новые',     dot: 'bg-white animate-pulse', badge: 'text-white bg-white/10 border border-white/20' },
   accepted:  { label: 'Принят',    dot: 'bg-white/60',            badge: 'text-white/80 bg-white/8 border border-white/12' },
   sewing:    { label: 'Пошив',     dot: 'bg-white/40',            badge: 'text-white/60 bg-transparent border border-white/10' },
-  ready:     { label: 'Готов',     dot: 'bg-white animate-pulse', badge: 'text-black bg-white' },
+  ready:     { label: 'Готово',    dot: 'bg-white animate-pulse', badge: 'text-black bg-white' },
   delivered: { label: 'Доставлен', dot: 'bg-white/15',            badge: 'text-white/20 bg-transparent border border-white/8' },
 };
 
@@ -28,12 +30,14 @@ function SetPriceModal({ order, onClose, onDone }) {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => { const t = setTimeout(() => setOpen(true), 15); return () => clearTimeout(t); }, []);
   const close = () => { setOpen(false); setTimeout(onClose, 280); };
 
   const submit = async () => {
-    if (!price || parseFloat(price) <= 0) { setErr('Введите корректную цену'); return; }
+    if (!price || parseFloat(price) <= 0) { setErr(tt('Введите корректную цену')); return; }
     setBusy(true);
     try {
       const d = await api.customOrders.setPrice(order.id, parseFloat(price));
@@ -53,7 +57,7 @@ function SetPriceModal({ order, onClose, onDone }) {
         onClick={e => e.stopPropagation()}>
         <div className="p-7 space-y-5">
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">Назначить цену</p>
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('Назначить цену')}</p>
             <p className="text-base font-black uppercase tracking-tight">{order.title}</p>
             {order.description && <p className="text-xs text-white/35 mt-2 leading-relaxed">{order.description}</p>}
           </div>
@@ -61,7 +65,7 @@ function SetPriceModal({ order, onClose, onDone }) {
             <img src={`${BASE_URL}${order.photoUrl}`} alt="" className="w-full max-h-48 object-cover border border-white/8" />
           )}
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Цена, ₸</p>
+            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Цена, ₸')}</p>
             <input value={price} onChange={e => setPrice(e.target.value.replace(/\D/g, ''))}
               placeholder="150000" inputMode="numeric"
               className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-xl font-black outline-none focus:border-white/40 transition-colors placeholder-white/15" />
@@ -72,7 +76,7 @@ function SetPriceModal({ order, onClose, onDone }) {
               className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 transition-colors">←</button>
             <button onClick={submit} disabled={busy}
               className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors disabled:opacity-40">
-              {busy ? '...' : 'Назначить'}
+              {busy ? '...' : tt('Назначить цену')}
             </button>
           </div>
         </div>
@@ -93,6 +97,8 @@ export default function FranchiseePage() {
   const [busy, setBusy] = useState(null);
   const [priceModal, setPriceModal] = useState(null);
   const [salesPlan, setSalesPlan] = useState(null);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => {
     connectWs();
@@ -166,11 +172,11 @@ export default function FranchiseePage() {
   const readyCount = totals.ready;
 
   const filters = [
-    { id: 'all',      label: 'Все',     count: allCount },
-    { id: 'placed',   label: 'Новые',   count: totals.fresh },
-    { id: 'accepted', label: 'Приняты', count: null },
-    { id: 'sewing',   label: 'Пошив',   count: null },
-    { id: 'ready',    label: 'Готовы',  count: readyCount },
+    { id: 'all',      label: tt('Все'),     count: allCount },
+    { id: 'placed',   label: tt('Новые'),   count: totals.fresh },
+    { id: 'accepted', label: tt('Приняты'), count: null },
+    { id: 'sewing',   label: tt('Пошив'),   count: null },
+    { id: 'ready',    label: tt('Готовы'),  count: readyCount },
   ];
 
   return (
@@ -179,7 +185,7 @@ export default function FranchiseePage() {
       <nav className="fixed top-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xs font-black tracking-[0.35em] uppercase">AVISHU</span>
-          <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/20">Партнёр</span>
+          <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/20">{tt('Партнёр')}</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -189,7 +195,7 @@ export default function FranchiseePage() {
             </span>
           </div>
           <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/25 hover:text-white/60 transition-colors">
-            Выйти
+            {tt('Выйти')}
           </button>
           <button onClick={() => navigate('/app/profile')}
             className="group w-8 h-8 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors">
@@ -204,13 +210,13 @@ export default function FranchiseePage() {
       <div className="max-w-3xl mx-auto px-6 pt-[80px] pb-28">
 
         <div className="mb-8">
-          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Добро пожаловать</p>
-          <h1 className="text-2xl font-black uppercase tracking-tight">{user?.full_name || 'Партнёр'}</h1>
+          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">{tt('Добро пожаловать')}</p>
+          <h1 className="text-2xl font-black uppercase tracking-tight">{user?.full_name || tt('Партнёр')}</h1>
         </div>
 
         <div className="border border-white/6 mb-8 overflow-hidden">
           <div className="bg-black px-5 pt-5 pb-4 border-b border-white/6">
-            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Выручка · {month}</p>
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">{tt('Выручка')} · {month}</p>
             <p className="text-3xl font-black text-white mb-4">{fmt(monthRevenue)}</p>
             {planTarget > 0 && (
               <>
@@ -233,10 +239,10 @@ export default function FranchiseePage() {
 
           <div className="grid grid-cols-4 gap-px bg-white/6">
             {[
-              { label: 'Новых',   value: totals.fresh,  accent: totals.fresh > 0 },
-              { label: 'В работе', value: totals.active, muted: totals.active === 0 },
-              { label: 'Готовы',  value: totals.ready,  accent: totals.ready > 0 },
-              { label: 'Индив.',  value: pendingReview.length + pendingPayment.length + pendingAccept.length, accent: (pendingReview.length + pendingPayment.length + pendingAccept.length) > 0 },
+              { label: tt('Новых'),   value: totals.fresh,  accent: totals.fresh > 0 },
+              { label: tt('В работе'), value: totals.active, muted: totals.active === 0 },
+              { label: tt('Готовы'),  value: totals.ready,  accent: totals.ready > 0 },
+              { label: tt('Индив.'),  value: pendingReview.length + pendingPayment.length + pendingAccept.length, accent: (pendingReview.length + pendingPayment.length + pendingAccept.length) > 0 },
             ].map(m => (
               <div key={m.label} className="bg-black px-3 py-4">
                 <p className="text-[8px] font-semibold tracking-[0.3em] uppercase text-white/25 mb-2">{m.label}</p>
@@ -262,7 +268,7 @@ export default function FranchiseePage() {
         {loading ? (
           <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
         ) : visible.length === 0 ? (
-          <div className="py-20 text-center text-sm text-white/20">Заказов нет</div>
+          <div className="py-20 text-center text-sm text-white/20">{tt('Заказов нет')}</div>
         ) : (
           <div className="divide-y divide-white/6">
             {visible.map(o => {
@@ -303,7 +309,7 @@ export default function FranchiseePage() {
                               ? 'bg-white text-black hover:bg-white/90'
                               : 'text-white/40 hover:text-white border border-white/12 hover:border-white/35'
                           }`}>
-                          {busy === busyKey ? '...' : next === 'delivered' ? 'Доставлено' : `→ ${STATUS[next]?.label || next}`}
+                          {busy === busyKey ? '...' : next === 'delivered' ? tt('Доставлен') : `→ ${tt(STATUS[next]?.label || next)}`}
                         </button>
                       )}
                     </div>
@@ -317,7 +323,7 @@ export default function FranchiseePage() {
         {pendingReview.length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              На рассмотрении · {pendingReview.length}
+              {tt('На рассмотрении')} · {pendingReview.length}
             </p>
             <div className="divide-y divide-white/6">
               {pendingReview.map(o => (
@@ -335,7 +341,7 @@ export default function FranchiseePage() {
                   </div>
                   <button onClick={() => setPriceModal(o)}
                     className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:text-white border border-white/12 hover:border-white/35 px-4 py-2 transition-colors">
-                    Назначить цену
+                    {tt('Назначить цену')}
                   </button>
                 </div>
               ))}
@@ -346,7 +352,7 @@ export default function FranchiseePage() {
         {pendingPayment.length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              Ожидают оплаты · {pendingPayment.length}
+              {tt('Ожидает оплаты')} · {pendingPayment.length}
             </p>
             <div className="divide-y divide-white/6">
               {pendingPayment.map(o => (
@@ -367,7 +373,7 @@ export default function FranchiseePage() {
         {pendingAccept.length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              Оплачены · ждут подтверждения · {pendingAccept.length}
+              {tt('Оплачены · ждут подтверждения ·')} {pendingAccept.length}
             </p>
             <div className="divide-y divide-white/6">
               {pendingAccept.map(o => (
@@ -378,7 +384,7 @@ export default function FranchiseePage() {
                   </div>
                   <button onClick={() => acceptCustom(o)} disabled={busy === (o.id + '_c')}
                     className="text-[10px] font-bold uppercase tracking-[0.15em] bg-white text-black px-4 py-2 hover:bg-white/92 transition-colors disabled:opacity-40">
-                    {busy === (o.id + '_c') ? '...' : 'Принять'}
+                    {busy === (o.id + '_c') ? '...' : tt('Принять')}
                   </button>
                 </div>
               ))}
@@ -399,8 +405,8 @@ export default function FranchiseePage() {
       </div>
 
       <BottomNav items={[
-        { id: 'main',    icon: Icons.home,   label: 'Главная', active: true,  onClick: () => {} },
-        { id: 'profile', icon: Icons.person, label: 'Профиль', active: false, onClick: () => navigate('/app/profile') },
+        { id: 'main',    icon: Icons.home,   label: tt('Главная'), active: true,  onClick: () => {} },
+        { id: 'profile', icon: Icons.person, label: tt('Профиль'), active: false, onClick: () => navigate('/app/profile') },
       ]} />
     </div>
   );

@@ -4,6 +4,8 @@ import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../i18n';
 
 const NEXT = { placed: 'accepted', accepted: 'sewing', sewing: 'ready', ready: 'delivered' };
 
@@ -70,6 +72,8 @@ export default function AdminPage() {
   const [editErr, setEditErr] = useState('');
   const [editImageFile, setEditImageFile] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState(null);
+  const { i18n } = useTranslation();
+  const tt = (s) => tr(s, i18n.language);
 
   useEffect(() => {
     connectWs();
@@ -254,6 +258,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-3">
           <span className="text-xs font-black tracking-[0.35em] uppercase">AVISHU</span>
           <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/20">Admin</span>
+          <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/20">{tt('Admin')}</span>
         </div>
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-2">
@@ -263,7 +268,7 @@ export default function AdminPage() {
             </span>
           </div>
           <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/25 hover:text-white/60 transition-colors">
-            Выйти
+            {tt('Выйти')}
           </button>
         </div>
       </nav>
@@ -271,16 +276,16 @@ export default function AdminPage() {
       <div className="max-w-4xl mx-auto px-6 pt-[80px] pb-28">
 
         <div className="mb-8">
-          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Панель управления</p>
-          <h1 className="text-2xl font-black uppercase tracking-tight">{user?.full_name || 'Admin'}</h1>
+          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">{tt('Панель управления')}</p>
+          <h1 className="text-2xl font-black uppercase tracking-tight">{user?.full_name || tt('Admin')}</h1>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/6 border border-white/6 mb-8 overflow-hidden">
           {[
-            { label: 'Выручка',  value: fmt(totals.revenue) },
-            { label: 'Новых',    value: totals.fresh,  accent: totals.fresh > 0 },
-            { label: 'В работе', value: totals.active, muted: totals.active === 0 },
-            { label: 'Готово',   value: totals.done,   muted: totals.done === 0 },
+            { label: tt('Выручка'),  value: fmt(totals.revenue) },
+            { label: tt('Новых'),    value: totals.fresh,  accent: totals.fresh > 0 },
+            { label: tt('В работе'), value: totals.active, muted: totals.active === 0 },
+            { label: tt('Готово'),   value: totals.done,   muted: totals.done === 0 },
           ].map(m => (
             <div key={m.label} className="bg-black px-5 py-5">
               <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2.5">{m.label}</p>
@@ -296,12 +301,12 @@ export default function AdminPage() {
           <>
             <div className="flex gap-px bg-white/6 border border-white/6 mb-6 overflow-hidden">
               {[
-                { id: 'all',       label: 'Все' },
-                { id: 'placed',    label: 'Новые' },
-                { id: 'accepted',  label: 'Приняты' },
-                { id: 'sewing',    label: 'Пошив' },
-                { id: 'ready',     label: 'Готовы' },
-                { id: 'delivered', label: 'Готово' },
+                { id: 'all',       label: tt('Все') },
+                { id: 'placed',    label: tt('Новые') },
+                { id: 'accepted',  label: tt('Приняты') },
+                { id: 'sewing',    label: tt('Пошив') },
+                { id: 'ready',     label: tt('Готовы') },
+                { id: 'delivered', label: tt('Готово') },
               ].map(f => (
                 <button key={f.id} onClick={() => setFilter(f.id)}
                   className={`flex-1 py-2.5 text-[9px] font-bold tracking-[0.1em] uppercase transition-colors bg-black ${
@@ -313,9 +318,9 @@ export default function AdminPage() {
             </div>
 
             {loading ? (
-              <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
+              <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">{tt('Загрузка')}</div>
             ) : visible.length === 0 ? (
-              <div className="py-20 text-center text-sm text-white/20">Заказов нет</div>
+              <div className="py-20 text-center text-sm text-white/20">{tt('Заказов нет')}</div>
             ) : (
               <div className="divide-y divide-white/6">
                 {visible.map(o => {
@@ -366,13 +371,13 @@ export default function AdminPage() {
             <div className="mb-6">
               <button onClick={() => { setShowForm(f => !f); setFormErr(''); }}
                 className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/12 px-5 py-2.5 hover:border-white/35 hover:text-white transition-colors text-white/45">
-                {showForm ? '✕ Закрыть' : '+ Добавить товар'}
+                {showForm ? `✕ ${tt('Закрыть')}` : `+ ${tt('Добавить товар')}`}
               </button>
             </div>
 
             {showForm && (
               <form onSubmit={addProduct} className="border border-white/10 bg-[#080808] p-6 mb-8 space-y-5">
-                <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25">Новый товар</p>
+                <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25">{tt('Новый товар')}</p>
 
                 <div className="grid grid-cols-2 gap-5">
                   <div>
@@ -447,15 +452,15 @@ export default function AdminPage() {
 
                 <button type="submit" disabled={formBusy}
                   className="bg-white text-black text-xs font-black uppercase tracking-[0.25em] px-8 py-3.5 hover:bg-white/92 transition-colors disabled:opacity-40">
-                  {formBusy ? '...' : 'Добавить'}
+                  {formBusy ? '...' : tt('Добавить')}
                 </button>
               </form>
             )}
 
             {productsLoading ? (
-              <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
+              <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">{tt('Загрузка')}</div>
             ) : products.length === 0 ? (
-              <div className="py-20 text-center text-sm text-white/20">Товаров нет</div>
+              <div className="py-20 text-center text-sm text-white/20">{tt('Товаров нет')}</div>
             ) : (
               <div className="divide-y divide-white/6">
                 {products.map(p => (
@@ -477,11 +482,11 @@ export default function AdminPage() {
                         className={`text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 border transition-colors flex-shrink-0 ${
                           editingId === p.id ? 'border-white/30 text-white/60' : 'border-white/10 text-white/25 hover:border-white/30 hover:text-white/60'
                         }`}>
-                        {editingId === p.id ? 'Закрыть' : 'Изменить'}
+                        {editingId === p.id ? tt('Закрыть') : tt('Изменить')}
                       </button>
                       <button onClick={() => removeProduct(p)}
                         className="text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 border border-white/10 text-white/25 hover:border-red-500/40 hover:text-red-400 transition-colors flex-shrink-0">
-                        Убрать
+                        {tt('Убрать')}
                       </button>
                     </div>
 
@@ -555,11 +560,11 @@ export default function AdminPage() {
                         <div className="flex gap-2.5">
                           <button type="button" onClick={() => setEditingId(null)}
                             className="px-5 py-2.5 border border-white/10 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 hover:text-white/60 transition-colors">
-                            Отмена
+                            {tt('Отмена')}
                           </button>
                           <button type="submit" disabled={editBusy}
                             className="px-6 py-2.5 bg-white text-black text-[10px] font-black uppercase tracking-[0.25em] hover:bg-white/92 transition-colors disabled:opacity-40">
-                            {editBusy ? '...' : 'Сохранить'}
+                            {editBusy ? '...' : tt('Сохранить')}
                           </button>
                         </div>
                       </form>
@@ -576,7 +581,7 @@ export default function AdminPage() {
             <div className="flex flex-wrap gap-3 mb-6">
               <button onClick={() => setShowCreateUser(v => !v)}
                 className="px-5 py-2.5 border border-white/12 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:text-white hover:border-white/35 transition-colors">
-                {showCreateUser ? '✕ Скрыть форму' : '+ Добавить пользователя'}
+                {showCreateUser ? `✕ ${tt('Скрыть форму')}` : `+ ${tt('Добавить пользователя')}`}
               </button>
             </div>
 
@@ -601,7 +606,7 @@ export default function AdminPage() {
                 {createErr && <p className="text-xs text-red-400/80">{createErr}</p>}
                 <button type="submit" disabled={createBusy}
                   className="bg-white text-black text-xs font-black uppercase tracking-[0.25em] px-5 py-2.5 hover:bg-white/92 transition-colors disabled:opacity-40">
-                  {createBusy ? 'Сохранение...' : 'Создать'}
+                  {createBusy ? tt('Сохранение...') : tt('Создать')}
                 </button>
               </form>
             )}
@@ -614,12 +619,12 @@ export default function AdminPage() {
                 className="flex-1 bg-transparent border border-white/12 text-white/80 px-4 py-2.5 text-xs outline-none focus:border-white/35 transition-colors placeholder-white/20" />
               <button onClick={loadUsers}
                 className="px-5 py-2.5 border border-white/12 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:text-white hover:border-white/35 transition-colors">
-                Найти
+                {tt('Найти')}
               </button>
             </div>
 
             {usersLoading ? (
-              <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">Загрузка</div>
+              <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">{tt('Загрузка')}</div>
             ) : (
               <div className="divide-y divide-white/6">
                 {users.map(u => (
@@ -635,7 +640,7 @@ export default function AdminPage() {
                     {u.user_type === 'franchisee' && (
                       <button onClick={() => openPlanModal(u)}
                         className="text-[10px] font-bold uppercase tracking-[0.15em] px-3.5 py-1.5 border border-white/12 text-white/30 hover:border-white/35 hover:text-white transition-colors flex-shrink-0">
-                        План
+                        {tt('План')}
                       </button>
                     )}
                     <button onClick={() => toggleUser(u)}
@@ -644,7 +649,7 @@ export default function AdminPage() {
                           ? 'border-white/12 text-white/30 hover:border-red-500/40 hover:text-red-400'
                           : 'border-white/12 text-white/30 hover:border-white/35 hover:text-white'
                       }`}>
-                      {u.is_active ? 'Откл' : 'Вкл'}
+                      {u.is_active ? tt('Откл') : tt('Вкл')}
                     </button>
                   </div>
                 ))}
@@ -656,8 +661,8 @@ export default function AdminPage() {
 
       <BottomNav items={[
         { id: 'orders',   icon: Icons.list,   label: `Заказы${orders.length ? ` · ${orders.length}` : ''}`, active: tab === 'orders',   onClick: () => setTab('orders') },
-        { id: 'products', icon: Icons.grid,   label: 'Товары',         active: tab === 'products', onClick: () => setTab('products') },
-        { id: 'users',    icon: Icons.person, label: 'Польз.',         active: tab === 'users',    onClick: () => setTab('users') },
+        { id: 'products', icon: Icons.grid,   label: tt('Товары'),         active: tab === 'products', onClick: () => setTab('products') },
+        { id: 'users',    icon: Icons.person, label: tt('Польз.'),         active: tab === 'users',    onClick: () => setTab('users') },
       ]} />
 
       {planModal && (
@@ -666,16 +671,16 @@ export default function AdminPage() {
           <div className="bg-[#080808] border border-white/10 w-full max-w-sm p-7 space-y-5"
             onClick={e => e.stopPropagation()}>
             <div>
-              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">План продаж</p>
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('План продаж')}</p>
               <p className="text-base font-black uppercase tracking-tight">{planModal.full_name}</p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Месяц</p>
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Месяц')}</p>
               <input type="month" value={planMonth} onChange={e => setPlanMonth(e.target.value)}
                 className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors" />
             </div>
             <div>
-              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Целевая выручка, ₸</p>
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Целевая выручка, ₸')}</p>
               <input value={planValue} onChange={e => setPlanValue(e.target.value.replace(/\D/g, ''))}
                 placeholder="2000000" inputMode="numeric"
                 className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-xl font-black outline-none focus:border-white/40 transition-colors placeholder-white/15" />
@@ -686,7 +691,7 @@ export default function AdminPage() {
                 className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 transition-colors">←</button>
               <button onClick={savePlan} disabled={planBusy}
                 className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors disabled:opacity-40">
-                {planBusy ? '...' : 'Сохранить'}
+                {planBusy ? '...' : tt('Сохранить')}
               </button>
             </div>
           </div>
