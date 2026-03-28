@@ -661,7 +661,7 @@ export default function AdminPage() {
       ]} />
 
       {planModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm"
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm"
           onClick={() => setPlanModal(null)}>
           <div className="bg-[#080808] border border-white/10 w-full max-w-sm p-7 space-y-5"
             onClick={e => e.stopPropagation()}>

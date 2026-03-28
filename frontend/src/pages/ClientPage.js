@@ -106,7 +106,7 @@ function ShopModal({ item, onClose, onAddToCart }) {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
+    <div className={`fixed inset-0 z-[70] flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
       onClick={close}>
       <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
         onClick={e => e.stopPropagation()}>
@@ -211,7 +211,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
+    <div className={`fixed inset-0 z-[70] flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
       onClick={close}>
       <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
         onClick={e => e.stopPropagation()}>
@@ -353,7 +353,7 @@ function CustomOrderModal({ onClose, onDone }) {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
+    <div className={`fixed inset-0 z-[70] flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
       onClick={close}>
       <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
         onClick={e => e.stopPropagation()}>
@@ -455,7 +455,7 @@ function CustomPayModal({ order, onClose, onDone }) {
   const fmtPrice = (n) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'KZT', maximumFractionDigits: 0 }).format(n);
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
+    <div className={`fixed inset-0 z-[70] flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
       onClick={close}>
       <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
         onClick={e => e.stopPropagation()}>
