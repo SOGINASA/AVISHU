@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AVISHU</string>
+    <string name="title_activity_main">AVISHU</string>
+    <string name="package_name">kz.avishu.app</string>
+    <string name="custom_url_scheme">kz.avishu.app</string>
+</resources>
