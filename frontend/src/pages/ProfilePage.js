@@ -6,11 +6,11 @@ import BottomNav, { Icons } from '../components/BottomNav';
 import { Capacitor } from '@capacitor/core';
 import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 import { Preferences } from '@capacitor/preferences';
-
-const BIO_KEY = 'bio_refresh_token';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import { tr } from '../i18n';
+
+const BIO_KEY = 'bio_refresh_token';
 
 const ROLE_LABELS = {
   client: 'Клиент',
@@ -211,12 +211,10 @@ export default function ProfilePage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">Биометрия</p>
+              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">{tt('Биометрия')}</p>
               <p className="text-[11px] text-white/40">
                 {Capacitor.isNativePlatform() ? 'Face ID / Touch ID' : 'Face ID, Touch ID, Windows Hello'}
               </p>
-              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">{tt('Биометрия')}</p>
-              <p className="text-[11px] text-white/40">Face ID, Touch ID, Windows Hello</p>
             </div>
             {Capacitor.isNativePlatform() ? (
               nativeBioEnabled ? (
@@ -244,13 +242,6 @@ export default function ProfilePage() {
                 {registering ? '...' : '+ Добавить'}
               </button>
             )}
-            <button
-              onClick={handleAddBiometric}
-              disabled={registering}
-              className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
-            >
-              {registering ? '...' : `+ ${tt('Добавить')}`}
-            </button>
           </div>
 
           {Capacitor.isNativePlatform() && nativeBioEnabled && (
