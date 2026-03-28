@@ -133,13 +133,14 @@ def register():
 
     rp_id = current_app.config['WEBAUTHN_RP_ID']
     origin = current_app.config['WEBAUTHN_ORIGIN']
+    allowed_origins = list({origin, 'capacitor://localhost', 'http://localhost:3000'})
 
     try:
         verification = verify_registration_response(
             credential=data,
             expected_challenge=challenge,
             expected_rp_id=rp_id,
-            expected_origin=origin,
+            expected_origin=allowed_origins,
         )
     except Exception as e:
         return jsonify({'error': f'Verification failed: {str(e)}'}), 400
@@ -224,13 +225,14 @@ def authenticate():
 
     rp_id = current_app.config['WEBAUTHN_RP_ID']
     origin = current_app.config['WEBAUTHN_ORIGIN']
+    allowed_origins = list({origin, 'capacitor://localhost', 'http://localhost:3000'})
 
     try:
         verification = verify_authentication_response(
             credential=credential_data,
             expected_challenge=challenge,
             expected_rp_id=rp_id,
-            expected_origin=origin,
+            expected_origin=allowed_origins,
             credential_public_key=stored_cred.public_key,
             credential_current_sign_count=stored_cred.sign_count,
         )

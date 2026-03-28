@@ -77,7 +77,7 @@ export default function ProfilePage() {
           attestationObject: b64url(credential.response.attestationObject),
           clientDataJSON: b64url(credential.response.clientDataJSON),
         },
-        deviceName: navigator.userAgent.includes('Mobile') ? 'Мобильное устройство' : 'Этот компьютер',
+        deviceName: /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : navigator.userAgent.includes('Mobile') ? 'Мобильное устройство' : 'Этот компьютер',
       };
 
       await api.webauthn.register(credentialData);
@@ -115,7 +115,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-black text-white max-w-[430px] mx-auto">
 
-      <nav className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-5 py-4">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-5 py-4">
         <button
           onClick={() => navigate(-1)}
           className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors"
@@ -131,7 +131,7 @@ export default function ProfilePage() {
         </button>
       </nav>
 
-      <div className="px-5 py-8 pb-28 space-y-8">
+      <div className="px-5 pt-[80px] pb-28 space-y-8">
 
         {/* User info */}
         <div className="border border-white/12">
