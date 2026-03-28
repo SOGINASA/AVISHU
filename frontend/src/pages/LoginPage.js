@@ -6,9 +6,9 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 import { Preferences } from '@capacitor/preferences';
+import { useTranslation } from 'react-i18next';
 
 const BIO_KEY = 'bio_refresh_token';
-import { useTranslation } from 'react-i18next';
 
 export default function LoginPage() {
   const navigate = useNavigate();

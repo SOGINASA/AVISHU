@@ -6,11 +6,12 @@ import BottomNav, { Icons } from '../components/BottomNav';
 import { Capacitor } from '@capacitor/core';
 import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 import { Preferences } from '@capacitor/preferences';
-
-const BIO_KEY = 'bio_refresh_token';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import ThemeToggle from '../components/ThemeToggle';
 import { useTranslation } from 'react-i18next';
 import { tr } from '../i18n';
+
+const BIO_KEY = 'bio_refresh_token';
 
 const ROLE_LABELS = {
   client: 'Клиент',
@@ -32,7 +33,7 @@ function fromB64url(str) {
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const tt = (s) => tr(s, i18n.language);
 
   const [credentials, setCredentials] = useState([]);
@@ -41,7 +42,6 @@ export default function ProfilePage() {
   const [deletingId, setDeletingId] = useState(null);
   const [msg, setMsg] = useState(null); // { text, error }
   const [nativeBioEnabled, setNativeBioEnabled] = useState(false);
-  const [nativeBioAvailable, setNativeBioAvailable] = useState(false);
 
   const flash = (text, error = false) => {
     setMsg({ text, error });
@@ -201,22 +201,27 @@ export default function ProfilePage() {
             <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1.5">{tt('Роль')}</p>
             <p className="text-sm text-white/70">{tt(ROLE_LABELS[user?.user_type] || user?.user_type)}</p>
           </div>
-          <div className="px-5 py-4 border-t border-white/8 flex items-center justify-between gap-3">
+          <div className="px-5 py-4 border-t border-white/8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30">{tt('Язык')}</p>
             <LanguageSwitcher variant="inline" />
+          </div>
+          <div className="px-5 py-4 border-t border-white/8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30">{t('theme.title')}</p>
+              <p className="text-[11px] text-white/40">{t('theme.dark')} / {t('theme.light')}</p>
+            </div>
+            <ThemeToggle variant="inline" />
           </div>
         </div>
 
         {/* Biometric */}
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
             <div>
-              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">Биометрия</p>
+              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">{tt('Биометрия')}</p>
               <p className="text-[11px] text-white/40">
                 {Capacitor.isNativePlatform() ? 'Face ID / Touch ID' : 'Face ID, Touch ID, Windows Hello'}
               </p>
-              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">{tt('Биометрия')}</p>
-              <p className="text-[11px] text-white/40">Face ID, Touch ID, Windows Hello</p>
             </div>
             {Capacitor.isNativePlatform() ? (
               nativeBioEnabled ? (
@@ -241,16 +246,9 @@ export default function ProfilePage() {
                 disabled={registering}
                 className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
               >
-                {registering ? '...' : '+ Добавить'}
+                {registering ? '...' : `+ ${tt('Добавить')}`}
               </button>
             )}
-            <button
-              onClick={handleAddBiometric}
-              disabled={registering}
-              className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
-            >
-              {registering ? '...' : `+ ${tt('Добавить')}`}
-            </button>
           </div>
 
           {Capacitor.isNativePlatform() && nativeBioEnabled && (

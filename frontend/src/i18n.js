@@ -30,6 +30,11 @@ const resources = {
         ru: 'РУ',
         kk: 'ҚАЗ',
       },
+      theme: {
+        title: 'Тема',
+        light: 'Светлая',
+        dark: 'Темная',
+      },
       home: {
         openApp: 'Открыть приложение ->',
         login: 'Войти',
@@ -109,6 +114,11 @@ const resources = {
       lang: {
         ru: 'РУ',
         kk: 'ҚАЗ',
+      },
+      theme: {
+        title: 'Тақырып',
+        light: 'Жарық',
+        dark: 'Қараңғы',
       },
       home: {
         openApp: 'Қосымшаны ашу ->',

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -131,11 +132,14 @@ export default function HomePage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-white/8 px-8 py-5 flex items-center justify-between gap-4">
+      <footer className="border-t border-white/8 px-8 py-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <span className="text-xs font-semibold tracking-[0.3em] uppercase text-white/25">© AVISHU 2024</span>
-        <div className="flex items-center gap-4">
+        <div className="flex w-full flex-col items-start gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
           <span className="text-xs font-normal text-white/20">{t('home.footer')}</span>
-          <LanguageSwitcher variant="inline" />
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <LanguageSwitcher variant="inline" className="w-auto max-w-none" />
+            <ThemeToggle variant="inline" />
+          </div>
         </div>
       </footer>
     </div>
