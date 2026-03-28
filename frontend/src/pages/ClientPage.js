@@ -534,7 +534,8 @@ function CustomPayModal({ order, onClose, onDone }) {
 export default function ClientPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { orders, loading: ordersLoading, fetchOrders, connectWs, disconnectWs,
+  const { orders, customOrders, loading: ordersLoading, fetchOrders, fetchCustomOrders,
+    updateCustomOrder, connectWs, disconnectWs,
     cart, addToCart, removeFromCart, setCartQty } = useOrderStore();
   const [products, setProducts] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -542,15 +543,14 @@ export default function ClientPage() {
   const [loading, setLoading] = useState(true);
   const [checkout, setCheckout] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
-  const [customOrders, setCustomOrders] = useState([]);
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customPayOrder, setCustomPayOrder] = useState(null);
 
   useEffect(() => {
     connectWs();
     fetchOrders();
+    fetchCustomOrders();
     api.products.list().then(d => setProducts(d.products || [])).finally(() => setLoading(false));
-    api.customOrders.list().then(d => setCustomOrders(d.orders || [])).catch(() => {});
     return () => disconnectWs();
   }, []);
 
@@ -935,7 +935,7 @@ export default function ClientPage() {
         <CustomOrderModal
           onClose={() => setShowCustomForm(false)}
           onDone={(order) => {
-            setCustomOrders(cs => [order, ...cs]);
+            updateCustomOrder(order);
             setShowCustomForm(false);
             setTab('orders');
           }}
@@ -947,7 +947,7 @@ export default function ClientPage() {
           order={customPayOrder}
           onClose={() => setCustomPayOrder(null)}
           onDone={(updated) => {
-            setCustomOrders(cs => cs.map(c => c.id === updated.id ? updated : c));
+            updateCustomOrder(updated);
             setCustomPayOrder(null);
           }}
         />

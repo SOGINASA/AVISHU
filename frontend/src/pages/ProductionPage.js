@@ -8,9 +8,8 @@ import BottomNav, { Icons } from '../components/BottomNav';
 export default function ProductionPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { orders, fetchOrders, updateStatus, connectWs, disconnectWs, wsConnected } = useOrderStore();
+  const { orders, customOrders, fetchOrders, fetchCustomOrders, updateStatus, updateCustomOrder, connectWs, disconnectWs, wsConnected } = useOrderStore();
 
-  const [customOrders, setCustomOrders] = useState([]);
   const [busy, setBusy] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [tab, setTab] = useState('free');
@@ -18,7 +17,7 @@ export default function ProductionPage() {
   useEffect(() => {
     connectWs();
     fetchOrders();
-    api.customOrders.list().then(d => setCustomOrders(d.orders || [])).catch(() => {});
+    fetchCustomOrders();
     return () => disconnectWs();
   }, []);
 
@@ -43,7 +42,7 @@ export default function ProductionPage() {
     try {
       if (o.isCustom) {
         const d = await api.customOrders.claim(o.id);
-        setCustomOrders(cs => cs.map(c => c.id === o.id ? d.order : c));
+        updateCustomOrder(d.order);
       } else {
         await api.orders.claim(o.id);
         fetchOrders();
@@ -57,7 +56,7 @@ export default function ProductionPage() {
     try {
       if (o.isCustom) {
         const d = await api.customOrders.unclaim(o.id);
-        setCustomOrders(cs => cs.map(c => c.id === o.id ? d.order : c));
+        updateCustomOrder(d.order);
       } else {
         await api.orders.unclaim(o.id);
         fetchOrders();
@@ -71,7 +70,7 @@ export default function ProductionPage() {
     try {
       if (o.isCustom) {
         const d = await api.customOrders.updateStatus(o.id, toStatus);
-        setCustomOrders(cs => cs.map(c => c.id === o.id ? d.order : c));
+        updateCustomOrder(d.order);
       } else {
         await updateStatus(o.id, toStatus);
       }

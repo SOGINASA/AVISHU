@@ -4,15 +4,14 @@ import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
 
-const NEXT = { placed: 'accepted', accepted: 'sewing', sewing: 'ready', ready: 'delivered' };
-const CUSTOM_NEXT = { placed: 'accepted', accepted: 'sewing', sewing: 'ready', ready: 'delivered' };
+const FRANCHISEE_NEXT = { placed: 'accepted', ready: 'delivered' };
 
 const STATUS = {
-  placed:    { label: 'Новый',    dot: 'bg-white animate-pulse', badge: 'text-white bg-white/10 border border-white/20' },
-  accepted:  { label: 'Принят',   dot: 'bg-white/60',            badge: 'text-white/80 bg-white/8 border border-white/12' },
-  sewing:    { label: 'Пошив',    dot: 'bg-white/40',            badge: 'text-white/60 bg-transparent border border-white/10' },
-  ready:     { label: 'Готов',    dot: 'bg-white/70',            badge: 'text-black bg-white' },
-  delivered: { label: 'Доставлен', dot: 'bg-white/15',           badge: 'text-white/20 bg-transparent border border-white/8' },
+  placed:    { label: 'Новый',     dot: 'bg-white animate-pulse', badge: 'text-white bg-white/10 border border-white/20' },
+  accepted:  { label: 'Принят',    dot: 'bg-white/60',            badge: 'text-white/80 bg-white/8 border border-white/12' },
+  sewing:    { label: 'Пошив',     dot: 'bg-white/40',            badge: 'text-white/60 bg-transparent border border-white/10' },
+  ready:     { label: 'Готов',     dot: 'bg-white animate-pulse', badge: 'text-black bg-white' },
+  delivered: { label: 'Доставлен', dot: 'bg-white/15',            badge: 'text-white/20 bg-transparent border border-white/8' },
 };
 
 const fmt = (n) =>
@@ -84,17 +83,20 @@ function SetPriceModal({ order, onClose, onDone }) {
 export default function FranchiseePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { orders, loading, fetchOrders, updateStatus, connectWs, disconnectWs, wsConnected } = useOrderStore();
+  const {
+    orders, customOrders, loading,
+    fetchOrders, fetchCustomOrders, updateStatus, updateCustomOrder,
+    connectWs, disconnectWs, wsConnected,
+  } = useOrderStore();
   const [filter, setFilter] = useState('all');
   const [busy, setBusy] = useState(null);
-  const [customOrders, setCustomOrders] = useState([]);
   const [priceModal, setPriceModal] = useState(null);
   const [salesPlan, setSalesPlan] = useState(null);
 
   useEffect(() => {
     connectWs();
     fetchOrders();
-    api.customOrders.list().then(d => setCustomOrders(d.orders || [])).catch(() => {});
+    fetchCustomOrders();
     api.admin.myPlan(thisMonth()).then(d => setSalesPlan(d.plan)).catch(() => {});
     return () => disconnectWs();
   }, []);
@@ -102,14 +104,13 @@ export default function FranchiseePage() {
   const signOut = () => { logout(); navigate('/'); };
 
   const advance = async (o) => {
-    const next = o.isCustom ? CUSTOM_NEXT[o.status] : NEXT[o.status];
+    const next = FRANCHISEE_NEXT[o.status];
     if (!next) return;
     setBusy(o.isCustom ? (o.id + '_c') : o.id);
-
     try {
       if (o.isCustom) {
         const d = await api.customOrders.updateStatus(o.id, next);
-        setCustomOrders(cs => cs.map(c => c.id === o.id ? d.order : c));
+        updateCustomOrder(d.order);
       } else {
         await updateStatus(o.id, next);
       }
@@ -117,53 +118,58 @@ export default function FranchiseePage() {
     finally { setBusy(null); }
   };
 
+  const acceptCustom = async (o) => {
+    setBusy(o.id + '_c');
+    try {
+      const d = await api.customOrders.updateStatus(o.id, 'accepted');
+      updateCustomOrder(d.order);
+    } catch (e) { alert(e.message); }
+    finally { setBusy(null); }
+  };
+
   const month = thisMonth();
-  const monthOrders = orders.filter(o => (o.createdAt || '').startsWith(month));
-  const monthCustom = customOrders.filter(o => (o.createdAt || '').startsWith(month));
   const monthRevenue = [
-    ...monthOrders.filter(o => o.status !== 'placed'),
-    ...monthCustom.filter(o => !['pending_review', 'pending_payment', 'placed'].includes(o.status)),
+    ...orders.filter(o => (o.createdAt || '').startsWith(month) && o.status !== 'placed'),
+    ...customOrders.filter(o => (o.createdAt || '').startsWith(month) && !['pending_review', 'pending_payment', 'placed'].includes(o.status)),
   ].reduce((s, o) => s + ((o.totalPrice || o.price) || 0), 0);
 
   const totals = {
-    revenue: [
-      ...orders,
-      ...customOrders,
-    ].filter(o => !['placed', 'pending_review', 'pending_payment'].includes(o.status))
-      .reduce((s, o) => s + ((o.totalPrice || o.price) || 0), 0),
-    fresh: orders.filter(o => o.status === 'placed').length,
+    fresh:  orders.filter(o => o.status === 'placed').length,
     active: [
       ...orders.filter(o => ['accepted', 'sewing'].includes(o.status)),
       ...customOrders.filter(o => ['accepted', 'sewing'].includes(o.status)),
     ].length,
-    done: [
+    ready: [
       ...orders.filter(o => o.status === 'ready'),
       ...customOrders.filter(o => o.status === 'ready'),
     ].length,
   };
 
-  const pendingCustom = customOrders.filter(o => ['pending_review', 'pending_payment'].includes(o.status)).length;
+  const pendingReview   = customOrders.filter(o => o.status === 'pending_review');
+  const pendingPayment  = customOrders.filter(o => o.status === 'pending_payment');
+  const pendingAccept   = customOrders.filter(o => o.status === 'placed');
 
   const planTarget = salesPlan?.target || 0;
   const planPct = planTarget > 0 ? Math.min(100, (monthRevenue / planTarget) * 100) : 0;
 
-  const mainCustomOrders = customOrders.filter(o => ['accepted', 'sewing', 'ready', 'delivered'].includes(o.status));
+  const mainOrders = [
+    ...orders,
+    ...customOrders.filter(o => ['accepted', 'sewing', 'ready', 'delivered'].includes(o.status)),
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const visible = filter === 'all'
-    ? [...orders, ...mainCustomOrders]
-    : filter === 'placed'
-      ? orders.filter(o => o.status === 'placed')
-      : [
-          ...orders.filter(o => o.status === filter),
-          ...customOrders.filter(o => o.status === filter),
-        ];
+    ? mainOrders
+    : mainOrders.filter(o => o.status === filter);
+
+  const allCount = mainOrders.length;
+  const readyCount = totals.ready;
 
   const filters = [
-    { id: 'all',      label: 'Все',     count: orders.length + mainCustomOrders.length },
+    { id: 'all',      label: 'Все',     count: allCount },
     { id: 'placed',   label: 'Новые',   count: totals.fresh },
     { id: 'accepted', label: 'Приняты', count: null },
     { id: 'sewing',   label: 'Пошив',   count: null },
-    { id: 'ready',    label: 'Готовы',  count: totals.done },
+    { id: 'ready',    label: 'Готовы',  count: readyCount },
   ];
 
   return (
@@ -197,12 +203,8 @@ export default function FranchiseePage() {
       <div className="max-w-3xl mx-auto px-6 py-8 pb-28">
 
         <div className="mb-8">
-          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">
-            Добро пожаловать
-          </p>
-          <h1 className="text-2xl font-black uppercase tracking-tight">
-            {user?.full_name || 'Партнёр'}
-          </h1>
+          <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">Добро пожаловать</p>
+          <h1 className="text-2xl font-black uppercase tracking-tight">{user?.full_name || 'Партнёр'}</h1>
         </div>
 
         <div className="border border-white/6 mb-8 overflow-hidden">
@@ -230,10 +232,10 @@ export default function FranchiseePage() {
 
           <div className="grid grid-cols-4 gap-px bg-white/6">
             {[
-              { label: 'Новых',      value: totals.fresh,   accent: totals.fresh > 0 },
-              { label: 'В работе',   value: totals.active,  muted: totals.active === 0 },
-              { label: 'Готовы',     value: totals.done,    muted: totals.done === 0 },
-              { label: 'Индив.',     value: pendingCustom,  accent: pendingCustom > 0 },
+              { label: 'Новых',   value: totals.fresh,  accent: totals.fresh > 0 },
+              { label: 'В работе', value: totals.active, muted: totals.active === 0 },
+              { label: 'Готовы',  value: totals.ready,  accent: totals.ready > 0 },
+              { label: 'Индив.',  value: pendingReview.length + pendingPayment.length + pendingAccept.length, accent: (pendingReview.length + pendingPayment.length + pendingAccept.length) > 0 },
             ].map(m => (
               <div key={m.label} className="bg-black px-3 py-4">
                 <p className="text-[8px] font-semibold tracking-[0.3em] uppercase text-white/25 mb-2">{m.label}</p>
@@ -264,11 +266,11 @@ export default function FranchiseePage() {
           <div className="divide-y divide-white/6">
             {visible.map(o => {
               const s = STATUS[o.status] || STATUS.placed;
-              const next = o.isCustom ? CUSTOM_NEXT[o.status] : NEXT[o.status];
+              const next = FRANCHISEE_NEXT[o.status];
+              const busyKey = o.isCustom ? (o.id + '_c') : o.id;
               return (
                 <div key={`${o.isCustom ? 'c' : 'r'}${o.id}`} className="py-5 flex items-start gap-5">
                   <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${s.dot}`} />
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3 mb-1.5">
                       <div>
@@ -279,8 +281,8 @@ export default function FranchiseePage() {
                           #{o.id}
                           {o.client?.name ? ` · ${o.client.name}` : ''}
                           {o.quantity > 1 ? ` · ${o.quantity} шт.` : ''}
-                          {!o.isCustom && o.product?.isPreorder ? ' · Предзаказ' : ''}
                           {!o.isCustom && o.desiredDate ? ` · к ${new Date(o.desiredDate).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })}` : ''}
+                          {o.isCustom ? ' · Индив.' : ''}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -294,9 +296,13 @@ export default function FranchiseePage() {
                         {s.label}
                       </span>
                       {next && (
-                        <button onClick={() => advance(o)} disabled={busy === (o.isCustom ? (o.id + '_c') : o.id)}
-                          className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:text-white border border-white/12 hover:border-white/35 px-3.5 py-1.5 transition-colors disabled:opacity-30">
-                          {busy === (o.isCustom ? (o.id + '_c') : o.id) ? '...' : `→ ${STATUS[next]?.label || next}`}
+                        <button onClick={() => advance(o)} disabled={busy === busyKey}
+                          className={`text-[10px] font-bold uppercase tracking-[0.15em] px-3.5 py-1.5 transition-colors disabled:opacity-30 ${
+                            next === 'delivered'
+                              ? 'bg-white text-black hover:bg-white/90'
+                              : 'text-white/40 hover:text-white border border-white/12 hover:border-white/35'
+                          }`}>
+                          {busy === busyKey ? '...' : next === 'delivered' ? 'Доставлено' : `→ ${STATUS[next]?.label || next}`}
                         </button>
                       )}
                     </div>
@@ -307,13 +313,13 @@ export default function FranchiseePage() {
           </div>
         )}
 
-        {customOrders.filter(o => o.status === 'pending_review').length > 0 && (
+        {pendingReview.length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              На рассмотрении · {customOrders.filter(o => o.status === 'pending_review').length}
+              На рассмотрении · {pendingReview.length}
             </p>
             <div className="divide-y divide-white/6">
-              {customOrders.filter(o => o.status === 'pending_review').map(o => (
+              {pendingReview.map(o => (
                 <div key={o.id} className="py-5">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
@@ -336,43 +342,40 @@ export default function FranchiseePage() {
           </div>
         )}
 
-        {customOrders.filter(o => o.status === 'pending_payment').length > 0 && (
+        {pendingPayment.length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              Ожидают оплаты · {customOrders.filter(o => o.status === 'pending_payment').length}
+              Ожидают оплаты · {pendingPayment.length}
             </p>
             <div className="divide-y divide-white/6">
-              {customOrders.filter(o => o.status === 'pending_payment').map(o => (
-                <div key={o.id} className="py-5">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold uppercase tracking-wide">{o.title}</p>
-                      <p className="text-[10px] text-white/30 mt-0.5">
-                        #{o.id} · {o.client?.name || ''} · {new Date(o.createdAt).toLocaleDateString('ru-RU')}
-                      </p>
-                    </div>
-                    <div className="text-sm font-black">{fmt(o.price)}</div>
+              {pendingPayment.map(o => (
+                <div key={o.id} className="py-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-wide">{o.title}</p>
+                    <p className="text-[10px] text-white/30 mt-0.5">
+                      #{o.id} · {o.client?.name || ''} · {new Date(o.createdAt).toLocaleDateString('ru-RU')}
+                    </p>
                   </div>
+                  <div className="text-sm font-black">{fmt(o.price)}</div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {customOrders.filter(o => o.status === 'placed').length > 0 && (
+        {pendingAccept.length > 0 && (
           <div className="mt-8 pt-8 border-t border-white/8">
             <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-5">
-              Оплачены · ждут подтверждения · {customOrders.filter(o => o.status === 'placed').length}
+              Оплачены · ждут подтверждения · {pendingAccept.length}
             </p>
             <div className="divide-y divide-white/6">
-              {customOrders.filter(o => o.status === 'placed').map(o => (
+              {pendingAccept.map(o => (
                 <div key={o.id} className="py-5 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-bold uppercase tracking-wide">{o.title}</p>
                     <p className="text-[10px] text-white/30 mt-0.5">#{o.id} · {o.client?.name || ''}</p>
                   </div>
-                  <button onClick={() => advance({ ...o, isCustom: true })}
-                    disabled={busy === (o.id + '_c')}
+                  <button onClick={() => acceptCustom(o)} disabled={busy === (o.id + '_c')}
                     className="text-[10px] font-bold uppercase tracking-[0.15em] bg-white text-black px-4 py-2 hover:bg-white/92 transition-colors disabled:opacity-40">
                     {busy === (o.id + '_c') ? '...' : 'Принять'}
                   </button>
@@ -387,13 +390,12 @@ export default function FranchiseePage() {
             order={priceModal}
             onClose={() => setPriceModal(null)}
             onDone={(updated) => {
-              setCustomOrders(cs => cs.map(c => c.id === updated.id ? updated : c));
+              updateCustomOrder(updated);
               setPriceModal(null);
             }}
           />
         )}
       </div>
-
     </div>
   );
 }

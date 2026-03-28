@@ -3,6 +3,7 @@ import { api, getWsUrl } from '../api';
 
 const useOrderStore = create((set, get) => ({
   orders: [],
+  customOrders: [],
   loading: false,
   wsConnected: false,
   _ws: null,
@@ -72,6 +73,13 @@ const useOrderStore = create((set, get) => ({
     }
   },
 
+  fetchCustomOrders: async () => {
+    try {
+      const data = await api.customOrders.list();
+      set({ customOrders: data.orders || [] });
+    } catch {}
+  },
+
   createOrder: async (payload) => {
     const data = await api.orders.create(payload);
     set(s => ({
@@ -90,6 +98,14 @@ const useOrderStore = create((set, get) => ({
     return data.order;
   },
 
+  updateCustomOrder: (order) => {
+    set(s => ({
+      customOrders: s.customOrders.find(o => o.id === order.id)
+        ? s.customOrders.map(o => o.id === order.id ? order : o)
+        : [order, ...s.customOrders],
+    }));
+  },
+
   _applyOrderEvent: (type, order) => {
     if (type === 'order_new') {
       set(s => ({
@@ -102,6 +118,22 @@ const useOrderStore = create((set, get) => ({
         orders: s.orders.find(o => o.id === order.id)
           ? s.orders.map(o => o.id === order.id ? order : o)
           : [order, ...s.orders],
+      }));
+    }
+  },
+
+  _applyCustomOrderEvent: (type, order) => {
+    if (type === 'custom_order_new') {
+      set(s => ({
+        customOrders: s.customOrders.find(o => o.id === order.id)
+          ? s.customOrders
+          : [order, ...s.customOrders],
+      }));
+    } else if (type === 'custom_order_updated') {
+      set(s => ({
+        customOrders: s.customOrders.find(o => o.id === order.id)
+          ? s.customOrders.map(o => o.id === order.id ? order : o)
+          : [order, ...s.customOrders],
       }));
     }
   },
@@ -125,6 +157,9 @@ const useOrderStore = create((set, get) => ({
         const msg = JSON.parse(e.data);
         if (msg.type === 'order_new' || msg.type === 'order_updated') {
           get()._applyOrderEvent(msg.type, msg.payload);
+        }
+        if (msg.type === 'custom_order_new' || msg.type === 'custom_order_updated') {
+          get()._applyCustomOrderEvent(msg.type, msg.payload);
         }
         if (msg.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
       } catch {}
