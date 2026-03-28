@@ -5,21 +5,13 @@ Run from the backend directory:  python seed_data.py
 Safe to re-run: checks for existing data before inserting anything.
 """
 
-import sys
-import os
+from datetime import datetime, timezone, timedelta
+import random
 
-# ── make sure we can import from backend/ ────────────────────────────────────
-sys.path.insert(0, os.path.dirname(__file__))
-
-from app import create_app
 from models import (
     db, User, Product, Order, CustomOrder,
     Feedback, Notification, NotificationPreference,
 )
-from datetime import datetime, timezone, timedelta
-import random
-
-app = create_app()
 
 # ── sentinel: skip if already seeded ─────────────────────────────────────────
 SEED_MARKER_EMAIL = "client@avishu.kz"
@@ -221,83 +213,88 @@ def seed_prefs(all_users):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def run():
-    with app.app_context():
-        if already_seeded():
-            print("[seed] Data already exists — skipping.")
-            return
+    if already_seeded():
+        print("[seed] Data already exists — skipping.")
+        return
 
-        print("[seed] Inserting test data …")
+    print("[seed] Inserting test data …")
 
-        # ── users ──────────────────────────────────────────────────────────
-        user_objs = []
-        for email, nick, name, role, password in USERS:
-            u = make_user(email, nick, name, role, password)
-            db.session.add(u)
-            user_objs.append(u)
-        db.session.flush()  # get IDs
+    # ── users ──────────────────────────────────────────────────────────
+    user_objs = []
+    for email, nick, name, role, password in USERS:
+        u = make_user(email, nick, name, role, password)
+        db.session.add(u)
+        user_objs.append(u)
+    db.session.flush()  # get IDs
 
-        clients      = [u for u in user_objs if u.user_type == "client"]
-        franchisees  = [u for u in user_objs if u.user_type == "franchisee"]
-        seamstresses = [u for u in user_objs if u.user_type == "production"]
+    clients      = [u for u in user_objs if u.user_type == "client"]
+    franchisees  = [u for u in user_objs if u.user_type == "franchisee"]
+    seamstresses = [u for u in user_objs if u.user_type == "production"]
 
-        # ── products ───────────────────────────────────────────────────────
-        product_objs = []
-        for name, desc, price, cat, preorder, in_stock in PRODUCTS:
-            p = Product(
-                name=name,
-                description=desc,
-                price=price,
-                category=cat,
-                is_preorder=preorder,
-                in_stock=in_stock,
-                is_active=True,
-                created_at=ago(days=random.randint(30, 90)),
-            )
-            db.session.add(p)
-            product_objs.append(p)
-        db.session.flush()
+    # ── products ───────────────────────────────────────────────────────
+    product_objs = []
+    for name, desc, price, cat, preorder, in_stock in PRODUCTS:
+        p = Product(
+            name=name,
+            description=desc,
+            price=price,
+            category=cat,
+            is_preorder=preorder,
+            in_stock=in_stock,
+            is_active=True,
+            created_at=ago(days=random.randint(30, 90)),
+        )
+        db.session.add(p)
+        product_objs.append(p)
+    db.session.flush()
 
-        # ── orders ─────────────────────────────────────────────────────────
-        for o in seed_orders(clients, franchisees, seamstresses, product_objs):
-            db.session.add(o)
+    # ── orders ─────────────────────────────────────────────────────────
+    for o in seed_orders(clients, franchisees, seamstresses, product_objs):
+        db.session.add(o)
 
-        # ── custom orders ──────────────────────────────────────────────────
-        for co in seed_custom_orders(clients, franchisees, seamstresses):
-            db.session.add(co)
-        db.session.flush()
+    # ── custom orders ──────────────────────────────────────────────────
+    for co in seed_custom_orders(clients, franchisees, seamstresses):
+        db.session.add(co)
+    db.session.flush()
 
-        # ── feedback ───────────────────────────────────────────────────────
-        for f in seed_feedback(clients + franchisees):
-            db.session.add(f)
+    # ── feedback ───────────────────────────────────────────────────────
+    for f in seed_feedback(clients + franchisees):
+        db.session.add(f)
 
-        # ── notifications ──────────────────────────────────────────────────
-        all_users = user_objs
-        for n in seed_notifications(all_users, [], []):
-            db.session.add(n)
+    # ── notifications ──────────────────────────────────────────────────
+    all_users = user_objs
+    for n in seed_notifications(all_users, [], []):
+        db.session.add(n)
 
-        # ── notification prefs ─────────────────────────────────────────────
-        for pref in seed_prefs(all_users):
-            db.session.add(pref)
+    # ── notification prefs ─────────────────────────────────────────────
+    for pref in seed_prefs(all_users):
+        db.session.add(pref)
 
-        db.session.commit()
+    db.session.commit()
 
-        print("[seed] Done. Accounts created:")
-        print()
-        role_map = {"client": [], "franchisee": [], "production": []}
-        pwd_map = {email: pwd for email, _, _, _, pwd in USERS}
-        for u in user_objs:
-            role_map.get(u.user_type, []).append(u.email)
-        for role, emails in role_map.items():
-            for e in emails:
-                print(f"  [{role:12s}]  {e}  /  {pwd_map[e]}")
-        print()
-        print(f"  [admin      ]  (configured in .env)")
-        print()
-        print(f"  Products  : {len(product_objs)}")
-        print(f"  Orders    : {Order.query.count()}")
-        print(f"  Custom    : {CustomOrder.query.count()}")
-        print(f"  Feedback  : {Feedback.query.count()}")
+    print("[seed] Done. Accounts created:")
+    print()
+    role_map = {"client": [], "franchisee": [], "production": []}
+    pwd_map = {email: pwd for email, _, _, _, pwd in USERS}
+    for u in user_objs:
+        role_map.get(u.user_type, []).append(u.email)
+    for role, emails in role_map.items():
+        for e in emails:
+            print(f"  [{role:12s}]  {e}  /  {pwd_map[e]}")
+    print()
+    print(f"  [admin      ]  (configured in .env)")
+    print()
+    print(f"  Products  : {len(product_objs)}")
+    print(f"  Orders    : {Order.query.count()}")
+    print(f"  Custom    : {CustomOrder.query.count()}")
+    print(f"  Feedback  : {Feedback.query.count()}")
 
 
 if __name__ == "__main__":
-    run()
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(__file__))
+    from app import create_app
+    _app = create_app()
+    with _app.app_context():
+        run()
