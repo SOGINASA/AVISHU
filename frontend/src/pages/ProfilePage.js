@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import { api } from '../api';
 import BottomNav, { Icons } from '../components/BottomNav';
+import { Capacitor } from '@capacitor/core';
+import { NativeBiometric } from 'capacitor-native-biometric';
+
+const BIO_SERVER = 'kz.avishu.app';
 
 const ROLE_LABELS = {
   client: 'Клиент',
@@ -30,6 +34,8 @@ export default function ProfilePage() {
   const [registering, setRegistering] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [msg, setMsg] = useState(null); // { text, error }
+  const [nativeBioEnabled, setNativeBioEnabled] = useState(false);
+  const [nativeBioAvailable, setNativeBioAvailable] = useState(false);
 
   const flash = (text, error = false) => {
     setMsg({ text, error });
@@ -48,6 +54,51 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => { loadCredentials(); }, [loadCredentials]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    NativeBiometric.isAvailable().then(r => {
+      setNativeBioAvailable(r.isAvailable);
+      if (r.isAvailable) {
+        NativeBiometric.getCredentials({ server: BIO_SERVER })
+          .then(() => setNativeBioEnabled(true))
+          .catch(() => setNativeBioEnabled(false));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const enableNativeBio = async () => {
+    setRegistering(true);
+    try {
+      await NativeBiometric.verifyIdentity({
+        reason: 'Подтвердите личность для настройки входа',
+        title: 'Face ID',
+      });
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) throw new Error('Нет активной сессии');
+      await NativeBiometric.setCredentials({
+        username: user?.email || '',
+        password: refreshToken,
+        server: BIO_SERVER,
+      });
+      setNativeBioEnabled(true);
+      flash('Face ID включён');
+    } catch (err) {
+      if (!err.message?.includes('cancel')) flash(err.message || 'Ошибка', true);
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const disableNativeBio = async () => {
+    try {
+      await NativeBiometric.deleteCredentials({ server: BIO_SERVER });
+      setNativeBioEnabled(false);
+      flash('Face ID отключён');
+    } catch {
+      flash('Ошибка отключения', true);
+    }
+  };
 
   const handleAddBiometric = async () => {
     setRegistering(true);
@@ -161,16 +212,49 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">Биометрия</p>
-              <p className="text-[11px] text-white/40">Face ID, Touch ID, Windows Hello</p>
+              <p className="text-[11px] text-white/40">
+                {Capacitor.isNativePlatform() ? 'Face ID / Touch ID' : 'Face ID, Touch ID, Windows Hello'}
+              </p>
             </div>
-            <button
-              onClick={handleAddBiometric}
-              disabled={registering}
-              className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
-            >
-              {registering ? '...' : '+ Добавить'}
-            </button>
+            {Capacitor.isNativePlatform() && nativeBioAvailable ? (
+              nativeBioEnabled ? (
+                <button
+                  onClick={disableNativeBio}
+                  className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 text-white/40 hover:border-red-500/50 hover:text-red-400 transition-all"
+                >
+                  Отключить
+                </button>
+              ) : (
+                <button
+                  onClick={enableNativeBio}
+                  disabled={registering}
+                  className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
+                >
+                  {registering ? '...' : '+ Включить'}
+                </button>
+              )
+            ) : !Capacitor.isNativePlatform() ? (
+              <button
+                onClick={handleAddBiometric}
+                disabled={registering}
+                className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
+              >
+                {registering ? '...' : '+ Добавить'}
+              </button>
+            ) : null}
           </div>
+
+          {Capacitor.isNativePlatform() && nativeBioAvailable && nativeBioEnabled && (
+            <div className="border border-white/12 px-5 py-4 flex items-center gap-3">
+              <svg className="w-5 h-5 text-white/50 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold">Face ID</p>
+                <p className="text-[10px] text-white/30 mt-0.5">Этот iPhone</p>
+              </div>
+            </div>
+          )}
 
           {credsLoading ? (
             <div className="flex gap-1.5 py-6 justify-center">

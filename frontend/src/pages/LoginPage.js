@@ -4,6 +4,9 @@ import { api } from '../api';
 import useAuthStore from '../stores/useAuthStore';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { NativeBiometric } from 'capacitor-native-biometric';
+
+const BIO_SERVER = 'kz.avishu.app';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -15,6 +18,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const [nativeBioAvailable, setNativeBioAvailable] = useState(false);
 
   useEffect(() => {
     if (user) navigate('/app', { replace: true });
@@ -24,6 +28,16 @@ export default function LoginPage() {
     const e = new URLSearchParams(location.search).get('error');
     if (e) setError(e);
   }, [location.search]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    NativeBiometric.isAvailable().then(r => {
+      if (!r.isAvailable) return;
+      NativeBiometric.getCredentials({ server: BIO_SERVER })
+        .then(() => setNativeBioAvailable(true))
+        .catch(() => {});
+    }).catch(() => {});
+  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -52,6 +66,24 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleNativeBioLogin = async () => {
+    setError('');
+    setBiometricLoading(true);
+    try {
+      await NativeBiometric.verifyIdentity({ reason: 'Войти в AVISHU', title: 'Face ID' });
+      const creds = await NativeBiometric.getCredentials({ server: BIO_SERVER });
+      const data = await api.refresh(creds.password);
+      const me = await api.me();
+      login({ access_token: data.access_token, refresh_token: creds.password }, me);
+      navigate('/app', { replace: true });
+    } catch (err) {
+      const msg = err.message || '';
+      if (!msg.includes('cancel')) setError('Ошибка Face ID. Войдите с паролем.');
+    } finally {
+      setBiometricLoading(false);
     }
   };
 
@@ -191,19 +223,37 @@ export default function LoginPage() {
             </button>
 
             {/* Biometric Login Button */}
-            <button
-              type="button"
-              onClick={handleBiometricLogin}
-              disabled={biometricLoading}
-              className="w-full flex items-center justify-center gap-3 px-5 py-4 border border-white/15 hover:border-white/30 hover:bg-white/5 transition-all disabled:opacity-40"
-            >
-              <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
-              </svg>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-                {biometricLoading ? '...' : 'Биометрия'}
-              </span>
-            </button>
+            {Capacitor.isNativePlatform() ? (
+              nativeBioAvailable && (
+                <button
+                  type="button"
+                  onClick={handleNativeBioLogin}
+                  disabled={biometricLoading}
+                  className="w-full flex items-center justify-center gap-3 px-5 py-4 border border-white/15 hover:border-white/30 hover:bg-white/5 transition-all disabled:opacity-40"
+                >
+                  <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                  </svg>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
+                    {biometricLoading ? '...' : 'Face ID'}
+                  </span>
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={handleBiometricLogin}
+                disabled={biometricLoading}
+                className="w-full flex items-center justify-center gap-3 px-5 py-4 border border-white/15 hover:border-white/30 hover:bg-white/5 transition-all disabled:opacity-40"
+              >
+                <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                </svg>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
+                  {biometricLoading ? '...' : 'Биометрия'}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

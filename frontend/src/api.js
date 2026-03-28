@@ -42,6 +42,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  refresh: (refresh_token) =>
+    req('/api/auth/refresh', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${refresh_token}` },
+    }),
+
   oauthStart: (provider, mobile = false) => req(`/api/auth/oauth/start/${provider}${mobile ? '?mobile=true' : ''}`),
 
   // ── WebAuthn (Biometric) ──────────────────────────────────────────────────
