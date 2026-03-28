@@ -78,7 +78,7 @@ function ProductTile({ p, onOpen }) {
           </span>
         )}
       </div>
-      <p className="text-[11px] font-black uppercase tracking-wide leading-tight mb-1">{p.name}</p>
+      <p className="text-[11px] font-black uppercase tracking-wide leading-tight mb-1 line-clamp-2 min-h-[2.5em]">{p.name}</p>
       <div className="flex items-center justify-between">
         <p className="text-sm font-black">{fmt(p.price)}</p>
         <p className="text-[9px] uppercase tracking-wider text-white/30 font-semibold">
