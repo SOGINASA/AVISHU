@@ -1,0 +1,224 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../stores/useAuthStore';
+import { api } from '../api';
+
+const ROLE_LABELS = {
+  client: 'Клиент',
+  franchisee: 'Франчайзи',
+  production: 'Производство',
+  admin: 'Администратор',
+};
+
+function b64url(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromB64url(str) {
+  const b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+
+export default function ProfilePage() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+
+  const [credentials, setCredentials] = useState([]);
+  const [credsLoading, setCredsLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [msg, setMsg] = useState(null); // { text, error }
+
+  const flash = (text, error = false) => {
+    setMsg({ text, error });
+    setTimeout(() => setMsg(null), 3500);
+  };
+
+  const loadCredentials = useCallback(async () => {
+    try {
+      const data = await api.webauthn.credentials();
+      setCredentials(data);
+    } catch {
+      setCredentials([]);
+    } finally {
+      setCredsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadCredentials(); }, [loadCredentials]);
+
+  const handleAddBiometric = async () => {
+    setRegistering(true);
+    try {
+      const optionsData = await api.webauthn.registerOptions();
+
+      const options = {
+        ...optionsData,
+        challenge: fromB64url(optionsData.challenge),
+        user: {
+          ...optionsData.user,
+          id: fromB64url(optionsData.user.id),
+        },
+        excludeCredentials: (optionsData.excludeCredentials || []).map(c => ({
+          ...c,
+          id: fromB64url(c.id),
+        })),
+      };
+
+      const credential = await navigator.credentials.create({ publicKey: options });
+
+      const credentialData = {
+        id: credential.id,
+        rawId: b64url(credential.rawId),
+        type: credential.type,
+        response: {
+          attestationObject: b64url(credential.response.attestationObject),
+          clientDataJSON: b64url(credential.response.clientDataJSON),
+        },
+        deviceName: navigator.userAgent.includes('Mobile') ? 'Мобильное устройство' : 'Этот компьютер',
+      };
+
+      await api.webauthn.register(credentialData);
+      flash('Биометрия добавлена');
+      await loadCredentials();
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        flash('Отменено пользователем', true);
+      } else {
+        flash(err.message || 'Ошибка регистрации', true);
+      }
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleDelete = async (credId) => {
+    setDeletingId(credId);
+    try {
+      await api.webauthn.deleteCredential(credId);
+      setCredentials(prev => prev.filter(c => c.id !== credId));
+      flash('Устройство удалено');
+    } catch (err) {
+      flash(err.message || 'Ошибка удаления', true);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const signOut = () => { logout(); navigate('/'); };
+
+  const fmtDate = (s) =>
+    s ? new Date(s).toLocaleString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+
+  return (
+    <div className="min-h-screen bg-black text-white max-w-[430px] mx-auto">
+
+      <nav className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-5 py-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors"
+        >
+          ← Назад
+        </button>
+        <span className="text-xs font-black tracking-[0.35em] uppercase">Профиль</span>
+        <button
+          onClick={signOut}
+          className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors"
+        >
+          Выйти
+        </button>
+      </nav>
+
+      <div className="px-5 py-8 space-y-8">
+
+        {/* User info */}
+        <div className="border border-white/12">
+          <div className="px-5 py-4 border-b border-white/8">
+            <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-3">Аккаунт</p>
+            <p className="text-lg font-black uppercase tracking-tight leading-tight">
+              {user?.full_name || user?.nickname || '—'}
+            </p>
+            {user?.nickname && user?.full_name && (
+              <p className="text-xs text-white/35 mt-0.5">@{user.nickname}</p>
+            )}
+          </div>
+          {user?.email && (
+            <div className="px-5 py-4 border-b border-white/8">
+              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1.5">Email</p>
+              <p className="text-sm text-white/70">{user.email}</p>
+            </div>
+          )}
+          <div className="px-5 py-4">
+            <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1.5">Роль</p>
+            <p className="text-sm text-white/70">{ROLE_LABELS[user?.user_type] || user?.user_type}</p>
+          </div>
+        </div>
+
+        {/* Biometric */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1">Биометрия</p>
+              <p className="text-[11px] text-white/40">Face ID, Touch ID, Windows Hello</p>
+            </div>
+            <button
+              onClick={handleAddBiometric}
+              disabled={registering}
+              className="text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 px-4 py-2.5 hover:border-white/40 hover:bg-white/5 transition-all disabled:opacity-30"
+            >
+              {registering ? '...' : '+ Добавить'}
+            </button>
+          </div>
+
+          {credsLoading ? (
+            <div className="flex gap-1.5 py-6 justify-center">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.12}s` }} />
+              ))}
+            </div>
+          ) : credentials.length === 0 ? (
+            <div className="border border-white/8 border-dashed px-5 py-8 text-center">
+              <svg className="w-7 h-7 text-white/15 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+              </svg>
+              <p className="text-[10px] text-white/25 uppercase tracking-wider">Нет устройств</p>
+            </div>
+          ) : (
+            <div className="border border-white/12 divide-y divide-white/8">
+              {credentials.map(cred => (
+                <div key={cred.id} className="flex items-center justify-between px-5 py-4">
+                  <div>
+                    <p className="text-sm font-semibold">{cred.device_name || 'Устройство'}</p>
+                    <p className="text-[10px] text-white/30 mt-0.5">
+                      Добавлено {fmtDate(cred.created_at)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(cred.id)}
+                    disabled={deletingId === cred.id}
+                    className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 hover:text-red-400/70 transition-colors disabled:opacity-30 ml-4"
+                  >
+                    {deletingId === cred.id ? '...' : 'Удалить'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Flash message */}
+      {msg && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider transition-all ${
+          msg.error ? 'bg-red-900/80 text-red-200' : 'bg-white/10 text-white'
+        } backdrop-blur-sm border ${msg.error ? 'border-red-500/30' : 'border-white/15'}`}>
+          {msg.text}
+        </div>
+      )}
+    </div>
+  );
+}

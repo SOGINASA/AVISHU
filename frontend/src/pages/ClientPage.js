@@ -570,9 +570,14 @@ export default function ClientPage() {
 
       <nav className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-5 py-4">
         <span className="text-xs font-black tracking-[0.35em] uppercase">AVISHU</span>
-        <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors">
-          Выйти
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/app/profile')} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors">
+            Профиль
+          </button>
+          <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors">
+            Выйти
+          </button>
+        </div>
       </nav>
 
       <div className="flex border-b border-white/8">

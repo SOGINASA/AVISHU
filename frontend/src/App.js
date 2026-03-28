@@ -10,6 +10,7 @@ import ClientPage from './pages/ClientPage';
 import FranchiseePage from './pages/FranchiseePage';
 import ProductionPage from './pages/ProductionPage';
 import AdminPage from './pages/AdminPage';
+import ProfilePage from './pages/ProfilePage';
 
 // Роли пользователей
 const VALID_ROLES = ['client', 'franchisee', 'production', 'admin'];
@@ -82,6 +83,8 @@ export default function App() {
           {/* Legacy dashboard redirect */}
           <Route path="/dashboard" element={<ProtectedRoute><RoleRouter /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute role="admin"><AdminPage /></ProtectedRoute>} />
+
+          <Route path="/app/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
