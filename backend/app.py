@@ -102,6 +102,8 @@ def create_app():
         db.create_all()
         _run_migrations(app)
         _ensure_admin(app)
+        from seed_data import run as _seed
+        _seed()
 
     from routes import auth_bp
     from routes.oauth import oauth_bp
