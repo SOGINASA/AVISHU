@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
+import BottomNav, { Icons } from '../components/BottomNav';
 
 const STEPS = [
   { key: 'placed',    label: 'Оформлен',  desc: 'Ожидает подтверждения' },
@@ -532,12 +533,12 @@ function CustomPayModal({ order, onClose, onDone }) {
 
 export default function ClientPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { orders, loading: ordersLoading, fetchOrders, connectWs, disconnectWs,
     cart, addToCart, removeFromCart, setCartQty } = useOrderStore();
   const [products, setProducts] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [tab, setTab] = useState('shop');
+  const [tab, setTab] = useState('home');
   const [loading, setLoading] = useState(true);
   const [checkout, setCheckout] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
@@ -553,7 +554,6 @@ export default function ClientPage() {
     return () => disconnectWs();
   }, []);
 
-  const signOut = () => { logout(); navigate('/'); };
 
   const mine = orders.filter(o => o.clientId === user?.id);
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
@@ -570,33 +570,106 @@ export default function ClientPage() {
 
       <nav className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-5 py-4">
         <span className="text-xs font-black tracking-[0.35em] uppercase">AVISHU</span>
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/app/profile')} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors">
-            Профиль
-          </button>
-          <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors">
-            Выйти
-          </button>
-        </div>
+        <button onClick={() => navigate('/app/profile')}
+          className="group w-8 h-8 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors">
+          <svg width="15" height="15" viewBox="0 0 17 17" fill="none" className="text-white/40 group-hover:text-white/70 transition-colors">
+            <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="0.85"/>
+            <path d="M1 16.5c0-4.142 3.358-7.5 7.5-7.5s7.5 3.358 7.5 7.5" stroke="currentColor" strokeWidth="0.85" strokeLinecap="square"/>
+          </svg>
+        </button>
       </nav>
 
-      <div className="flex border-b border-white/8">
-        {[
-          { id: 'shop',   label: 'Каталог' },
-          { id: 'cart',   label: `Корзина${cartCount ? ` · ${cartCount}` : ''}` },
-          { id: 'orders', label: `Заказы${allOrders.length ? ` · ${allOrders.length}` : ''}` },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex-1 py-4 text-[11px] font-bold uppercase tracking-[0.15em] transition-colors border-b-2 ${
-              tab === t.id ? 'border-white text-white' : 'border-transparent text-white/30 hover:text-white/55'
-            }`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {tab === 'home' && (
+        <div className="px-5 pt-8 pb-28">
+          <div className="mb-8">
+            <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">Добро пожаловать</p>
+            <h1 className="text-4xl font-black uppercase tracking-tight leading-none">{user?.full_name?.split(' ')[0] || 'Клиент'}</h1>
+          </div>
 
-      {tab === 'shop' && (
-        <div className="px-5 pt-8 pb-16">
+          <div className="border border-white/8 bg-[#080808] px-5 py-5 mb-4">
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-4">Лояльность</p>
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <p className="text-xs font-bold text-white/50 mb-0.5">AVISHU Member</p>
+                <p className="text-[10px] text-white/25 uppercase tracking-wider font-medium">
+                  {Math.max(0, 8 - mine.length)} заказов до Silver
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-black">{totalPts}</p>
+                <p className="text-[9px] text-white/30 uppercase tracking-wider">pts</p>
+              </div>
+            </div>
+            <div className="h-px bg-white/8 overflow-hidden">
+              <div className="h-full bg-white/45 transition-all duration-700"
+                style={{ width: `${Math.min(100, mine.length / 8 * 100)}%` }} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            <button onClick={() => setTab('catalog')}
+              className="border border-white/10 bg-[#080808] py-5 flex flex-col items-center gap-2 hover:border-white/25 transition-colors">
+              <svg width="17" height="17" viewBox="0 0 17 17" fill="none" className="text-white/40">
+                <rect x="0.5" y="0.5" width="6.5" height="6.5" stroke="currentColor" strokeWidth="0.75"/>
+                <rect x="10" y="0.5" width="6.5" height="6.5" stroke="currentColor" strokeWidth="0.75"/>
+                <rect x="0.5" y="10" width="6.5" height="6.5" stroke="currentColor" strokeWidth="0.75"/>
+                <rect x="10" y="10" width="6.5" height="6.5" stroke="currentColor" strokeWidth="0.75"/>
+              </svg>
+              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">Каталог</span>
+            </button>
+            <button onClick={() => setTab('orders')}
+              className="border border-white/10 bg-[#080808] py-5 flex flex-col items-center gap-2 hover:border-white/25 transition-colors">
+              <div className="relative">
+                <svg width="17" height="17" viewBox="0 0 17 17" fill="none" className="text-white/40">
+                  <rect x="1" y="1" width="15" height="15" stroke="currentColor" strokeWidth="0.75"/>
+                  <path d="M4.5 5.5h8M4.5 8.5h8M4.5 11.5h5" stroke="currentColor" strokeWidth="0.75" strokeLinecap="square"/>
+                </svg>
+                {allOrders.length > 0 && (
+                  <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white rounded-full flex items-center justify-center">
+                    <span className="text-[6px] font-black text-black">{allOrders.length > 9 ? '9+' : allOrders.length}</span>
+                  </div>
+                )}
+              </div>
+              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">Заказы</span>
+            </button>
+          </div>
+
+          {allOrders.length > 0 && (
+            <div>
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-4">Последний заказ</p>
+              <button className="w-full text-left border border-white/8 bg-[#080808] px-4 py-4 hover:border-white/20 transition-colors"
+                onClick={() => setTab('orders')}>
+                {(() => {
+                  const o = allOrders[0];
+                  const steps = o.isCustom ? CUSTOM_STEPS : STEPS;
+                  const step = steps.find(s => s.key === o.status) || steps[0];
+                  return (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wide">
+                          {o.isCustom ? o.title : (o.product?.name || `Заказ #${o.id}`)}
+                        </p>
+                        <p className="text-[10px] text-white/30 mt-0.5">{step.label}</p>
+                      </div>
+                      <span className="text-white/20 text-xs">→</span>
+                    </div>
+                  );
+                })()}
+              </button>
+            </div>
+          )}
+
+          <div className="mt-8 pt-8 border-t border-white/8">
+            <button onClick={() => setShowCustomForm(true)}
+              className="w-full border border-white/12 py-5 text-xs font-black uppercase tracking-[0.3em] text-white/40 hover:border-white/30 hover:text-white/70 transition-all">
+              + Заказать своё изделие
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'catalog' && (
+        <div className="px-5 pt-8 pb-28">
           <div className="mb-8">
             <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">Коллекция 2024</p>
             <h1 className="text-5xl font-black uppercase tracking-tight leading-none">AVISHU</h1>
@@ -626,12 +699,12 @@ export default function ClientPage() {
       )}
 
       {tab === 'cart' && (
-        <div className="px-5 py-8 pb-16">
+        <div className="px-5 py-8 pb-28">
           {cart.length === 0 ? (
             <div className="py-24 text-center">
               <p className="text-4xl font-black text-white/6 mb-4">0</p>
               <p className="text-sm text-white/25 mb-6">Корзина пуста</p>
-              <button onClick={() => setTab('shop')}
+              <button onClick={() => setTab('catalog')}
                 className="text-xs font-bold uppercase tracking-[0.2em] text-white underline underline-offset-4 hover:text-white/60 transition-colors">
                 В каталог
               </button>
@@ -678,7 +751,7 @@ export default function ClientPage() {
       )}
 
       {tab === 'orders' && (
-        <div className="px-5 py-8 pb-16">
+        <div className="px-5 py-8 pb-28">
           <div className="border border-white/8 bg-[#080808] px-5 py-5 mb-8">
             <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-4">Лояльность</p>
             <div className="flex items-end justify-between mb-3">
@@ -706,7 +779,7 @@ export default function ClientPage() {
           ) : allOrders.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm text-white/25 mb-6">Заказов пока нет</p>
-              <button onClick={() => setTab('shop')}
+              <button onClick={() => setTab('catalog')}
                 className="text-xs font-bold uppercase tracking-[0.2em] text-white underline underline-offset-4 hover:text-white/60 transition-colors">
                 В каталог
               </button>
@@ -879,6 +952,13 @@ export default function ClientPage() {
           }}
         />
       )}
+
+      <BottomNav items={[
+        { id: 'home',    icon: Icons.home,  label: 'Главная', active: tab === 'home',    onClick: () => setTab('home') },
+        { id: 'catalog', icon: Icons.grid,  label: 'Каталог', active: tab === 'catalog', onClick: () => setTab('catalog') },
+        { id: 'cart',    icon: Icons.bag,   label: 'Корзина', active: tab === 'cart',    onClick: () => setTab('cart'), badge: cartCount },
+        { id: 'orders',  icon: Icons.list,  label: 'Заказы',  active: tab === 'orders',  onClick: () => setTab('orders') },
+      ]} />
     </div>
   );
 }

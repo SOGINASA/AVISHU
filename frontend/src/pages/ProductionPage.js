@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
+import BottomNav, { Icons } from '../components/BottomNav';
 
 export default function ProductionPage() {
   const navigate = useNavigate();
@@ -181,7 +182,7 @@ export default function ProductionPage() {
           <span className="text-sm font-black tracking-[0.35em] uppercase">AVISHU</span>
           <span className="text-xs font-semibold tracking-[0.2em] uppercase text-white/20">Цех</span>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-white' : 'bg-white/15'}`} />
             <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/25">
@@ -190,6 +191,13 @@ export default function ProductionPage() {
           </div>
           <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/25 hover:text-white/60 transition-colors">
             Выйти
+          </button>
+          <button onClick={() => navigate('/app/profile')}
+            className="group w-8 h-8 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors">
+            <svg width="15" height="15" viewBox="0 0 17 17" fill="none" className="text-white/40 group-hover:text-white/70 transition-colors">
+              <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="0.85"/>
+              <path d="M1 16.5c0-4.142 3.358-7.5 7.5-7.5s7.5 3.358 7.5 7.5" stroke="currentColor" strokeWidth="0.85" strokeLinecap="square"/>
+            </svg>
           </button>
         </div>
       </nav>
@@ -209,21 +217,7 @@ export default function ProductionPage() {
         <p className="text-xs text-white/20 font-medium pb-1">{user?.full_name}</p>
       </div>
 
-      <div className="flex border-b border-white/8">
-        {[
-          { id: 'free', label: `Свободные${freeCount ? ` · ${freeCount}` : ''}` },
-          { id: 'mine', label: `Мои${myCount ? ` · ${myCount}` : ''}` },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex-1 py-4 text-[11px] font-bold uppercase tracking-[0.15em] transition-colors border-b-2 ${
-              tab === t.id ? 'border-white text-white' : 'border-transparent text-white/30 hover:text-white/55'
-            }`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="max-w-xl mx-auto px-6 py-8 space-y-4">
+      <div className="max-w-xl mx-auto px-6 py-8 pb-28 space-y-4">
         {tab === 'free' && (
           freeAll.length === 0
             ? <div className="py-24 text-center text-sm text-white/20">Свободных заказов нет</div>
@@ -235,6 +229,11 @@ export default function ProductionPage() {
             : myAll.map(o => <OrderCard key={key(o)} o={o} />)
         )}
       </div>
+
+      <BottomNav items={[
+        { id: 'free', icon: Icons.inbox,    label: `Свободные${freeCount ? ` · ${freeCount}` : ''}`, active: tab === 'free', onClick: () => setTab('free') },
+        { id: 'mine', icon: Icons.scissors, label: `Мои${myCount ? ` · ${myCount}` : ''}`,           active: tab === 'mine', onClick: () => setTab('mine') },
+      ]} />
     </div>
   );
 }

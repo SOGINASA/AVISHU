@@ -107,8 +107,11 @@ export default function RegisterPage() {
 
       {/* RIGHT — form */}
       <div className="flex-1 flex flex-col justify-center items-center px-8 py-16">
-        <button onClick={() => navigate('/')} className="lg:hidden text-xs tracking-[0.3em] uppercase text-white/40 mb-12">
-          AVISHU
+        <button onClick={() => navigate('/')}
+          className="lg:hidden group w-9 h-9 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors mb-12 self-start">
+          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+            <path d="M10 4.5H1M1 4.5L4.5 1M1 4.5L4.5 8" stroke="white" strokeWidth="0.85" strokeOpacity="0.45" className="group-hover:stroke-opacity-80 transition-all"/>
+          </svg>
         </button>
 
         <div className="w-full max-w-sm">

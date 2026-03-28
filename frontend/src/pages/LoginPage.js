@@ -94,6 +94,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
 
+      <button onClick={() => navigate('/')}
+        className="absolute top-6 left-6 group w-9 h-9 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors z-10">
+        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+          <path d="M10 4.5H1M1 4.5L4.5 1M1 4.5L4.5 8" stroke="white" strokeWidth="0.85" strokeOpacity="0.45" className="group-hover:stroke-opacity-80 transition-all"/>
+        </svg>
+      </button>
+
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-16">
         <div className="w-full max-w-[340px]">
 

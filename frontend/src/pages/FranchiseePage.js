@@ -154,7 +154,7 @@ export default function FranchiseePage() {
           <span className="text-xs font-black tracking-[0.35em] uppercase">AVISHU</span>
           <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/20">Партнёр</span>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full transition-colors ${wsConnected ? 'bg-white' : 'bg-white/20'}`} />
             <span className="text-[9px] font-semibold tracking-[0.25em] uppercase text-white/25">
@@ -164,10 +164,17 @@ export default function FranchiseePage() {
           <button onClick={signOut} className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/25 hover:text-white/60 transition-colors">
             Выйти
           </button>
+          <button onClick={() => navigate('/app/profile')}
+            className="group w-8 h-8 border border-white/12 flex items-center justify-center hover:border-white/35 transition-colors">
+            <svg width="15" height="15" viewBox="0 0 17 17" fill="none" className="text-white/40 group-hover:text-white/70 transition-colors">
+              <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="0.85"/>
+              <path d="M1 16.5c0-4.142 3.358-7.5 7.5-7.5s7.5 3.358 7.5 7.5" stroke="currentColor" strokeWidth="0.85" strokeLinecap="square"/>
+            </svg>
+          </button>
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-8">
+      <div className="max-w-3xl mx-auto px-6 py-8 pb-28">
 
         <div className="mb-8">
           <p className="text-[10px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">
@@ -339,6 +346,7 @@ export default function FranchiseePage() {
           />
         )}
       </div>
+
     </div>
   );
 }

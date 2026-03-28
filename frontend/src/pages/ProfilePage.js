@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import { api } from '../api';
+import BottomNav, { Icons } from '../components/BottomNav';
 
 const ROLE_LABELS = {
   client: 'Клиент',
@@ -130,7 +131,7 @@ export default function ProfilePage() {
         </button>
       </nav>
 
-      <div className="px-5 py-8 space-y-8">
+      <div className="px-5 py-8 pb-28 space-y-8">
 
         {/* User info */}
         <div className="border border-white/12">
@@ -211,13 +212,27 @@ export default function ProfilePage() {
 
       </div>
 
-      {/* Flash message */}
       {msg && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider transition-all ${
+        <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider z-50 ${
           msg.error ? 'bg-red-900/80 text-red-200' : 'bg-white/10 text-white'
         } backdrop-blur-sm border ${msg.error ? 'border-red-500/30' : 'border-white/15'}`}>
           {msg.text}
         </div>
+      )}
+
+      {user?.user_type === 'client' && (
+        <BottomNav items={[
+          { id: 'home',    icon: Icons.home,  label: 'Главная', active: false, onClick: () => navigate('/app/client') },
+          { id: 'catalog', icon: Icons.grid,  label: 'Каталог', active: false, onClick: () => navigate('/app/client') },
+          { id: 'cart',    icon: Icons.bag,   label: 'Корзина', active: false, onClick: () => navigate('/app/client') },
+          { id: 'orders',  icon: Icons.list,  label: 'Заказы',  active: false, onClick: () => navigate('/app/client') },
+        ]} />
+      )}
+      {user?.user_type === 'production' && (
+        <BottomNav items={[
+          { id: 'free', icon: Icons.inbox,    label: 'Свободные', active: false, onClick: () => navigate('/app/production') },
+          { id: 'mine', icon: Icons.scissors, label: 'Мои',        active: false, onClick: () => navigate('/app/production') },
+        ]} />
       )}
     </div>
   );
