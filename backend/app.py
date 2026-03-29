@@ -56,6 +56,21 @@ def _run_migrations(app):
                 if 'care_instructions' not in prod_cols:
                     conn.execute(text('ALTER TABLE products ADD COLUMN care_instructions TEXT'))
                     conn.commit()
+        # Users: delivery_address
+        user_cols = {c['name'] for c in inspector.get_columns('users')}
+        with db.engine.connect() as conn:
+            if 'delivery_address' not in user_cols:
+                conn.execute(text('ALTER TABLE users ADD COLUMN delivery_address TEXT'))
+                conn.commit()
+        # Orders: delivery_type & delivery_address
+        order_cols = {c['name'] for c in inspector.get_columns('orders')}
+        with db.engine.connect() as conn:
+            if 'delivery_type' not in order_cols:
+                conn.execute(text("ALTER TABLE orders ADD COLUMN delivery_type VARCHAR(20) DEFAULT 'delivery'"))
+                conn.commit()
+            if 'delivery_address' not in order_cols:
+                conn.execute(text('ALTER TABLE orders ADD COLUMN delivery_address TEXT'))
+                conn.commit()
 
 
 def _ensure_admin(app):

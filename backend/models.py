@@ -24,6 +24,7 @@ class User(db.Model):
 
     full_name = db.Column(db.String(100))
     avatar_url = db.Column(db.String(500), nullable=True)
+    delivery_address = db.Column(db.Text, nullable=True)
     user_type = db.Column(db.String(20), default='user')  # user, admin
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
@@ -67,6 +68,7 @@ class User(db.Model):
             'avatar_url': self.avatar_url,
             'user_type': self.user_type,
             'onboarding_completed': self.onboarding_completed,
+            'delivery_address': self.delivery_address,
             'created_at': _utc_iso(self.created_at),
             'last_login': _utc_iso(self.last_login),
             'oauth_provider': self.oauth_provider,
@@ -364,6 +366,8 @@ class Order(db.Model):
     quantity = db.Column(db.Integer, default=1)
     total_price = db.Column(db.Float, nullable=False)
     notes = db.Column(db.Text, nullable=True)
+    delivery_type = db.Column(db.String(20), default='delivery')  # delivery / pickup
+    delivery_address = db.Column(db.Text, nullable=True)
 
     # For preorders
     desired_date = db.Column(db.DateTime, nullable=True)
@@ -395,6 +399,8 @@ class Order(db.Model):
             'quantity': self.quantity,
             'totalPrice': self.total_price,
             'notes': self.notes,
+            'deliveryType': self.delivery_type,
+            'deliveryAddress': self.delivery_address,
             'desiredDate': _utc_iso(self.desired_date),
             'createdAt': _utc_iso(self.created_at),
             'updatedAt': _utc_iso(self.updated_at),

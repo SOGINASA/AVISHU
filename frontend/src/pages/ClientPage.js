@@ -213,8 +213,15 @@ function ShopModal({ item, onClose, onAddToCart }) {
   );
 }
 // deploy 5
-function CartCheckoutModal({ items, onClose, onSuccess }) {
-  const [step, setStep] = useState('card');
+
+const STORE_ADDRESS = 'г. Караганда, ул. Ерубаева, 31';
+const STORE_LAT = 49.8047;
+const STORE_LNG = 73.1094;
+
+function CartCheckoutModal({ items, onClose, onSuccess, savedAddress }) {
+  const [step, setStep] = useState('delivery');
+  const [deliveryType, setDeliveryType] = useState('delivery');
+  const [address, setAddress] = useState(savedAddress || '');
   const [cardNum, setCardNum] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
@@ -261,7 +268,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
     setStep('processing');
     setPaidTotal(total);
     await new Promise(r => setTimeout(r, 2400));
-    const res = await checkoutCart();
+    const res = await checkoutCart(deliveryType, deliveryType === 'delivery' ? address : null);
     setResult(res);
     setStep('success');
   };
@@ -269,8 +276,99 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
   return (
     <div className={`fixed inset-0 z-[70] flex items-end sm:items-center justify-center transition-all duration-300 ${open ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'}`}
       onClick={close}>
-      <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+      <div className={`bg-[#080808] border border-white/10 w-full max-w-sm transition-all duration-300 max-h-[90vh] overflow-y-auto ${open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
         onClick={e => e.stopPropagation()}>
+
+        {step === 'delivery' && (
+          <div className="p-7">
+            <div className="mb-6">
+              <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('Способ получения')}</p>
+              <p className="text-2xl font-black">{fmt(total)}</p>
+              <p className="text-[10px] text-white/30 mt-1">{items.length} поз. · {totalQty} шт.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button onClick={() => setDeliveryType('delivery')}
+                className={`py-4 px-3 border text-center transition-all ${
+                  deliveryType === 'delivery'
+                    ? 'border-white bg-white/[0.06]'
+                    : 'border-white/12 hover:border-white/30'
+                }`}>
+                <svg className="mx-auto mb-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                  <path d="M1 3h15v13H1z"/><path d="M16 8h4l3 4v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em]">{tt('Доставка')}</p>
+              </button>
+              <button onClick={() => setDeliveryType('pickup')}
+                className={`py-4 px-3 border text-center transition-all ${
+                  deliveryType === 'pickup'
+                    ? 'border-white bg-white/[0.06]'
+                    : 'border-white/12 hover:border-white/30'
+                }`}>
+                <svg className="mx-auto mb-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em]">{tt('Самовывоз')}</p>
+              </button>
+            </div>
+
+            {deliveryType === 'delivery' && (
+              <div className="mb-6 space-y-4">
+                <div>
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">{tt('Адрес доставки')}</p>
+                  <input value={address} onChange={e => setAddress(e.target.value)}
+                    placeholder={tt('Город, улица, дом, квартира')}
+                    className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+                </div>
+                {address && (
+                  <div className="border border-white/8 overflow-hidden">
+                    <iframe
+                      title="delivery-map"
+                      width="100%" height="160" style={{ border: 0 }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(address)}&zoom=14`}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {deliveryType === 'pickup' && (
+              <div className="mb-6 space-y-3">
+                <div className="border border-white/8 px-4 py-3">
+                  <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-1">{tt('Адрес магазина')}</p>
+                  <p className="text-sm text-white/70">{STORE_ADDRESS}</p>
+                </div>
+                <div className="border border-white/8 overflow-hidden">
+                  <iframe
+                    title="store-map"
+                    width="100%" height="160" style={{ border: 0 }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(STORE_ADDRESS)}&zoom=16`}
+                  />
+                </div>
+              </div>
+            )}
+
+            {err && <p className="text-xs text-red-400/80 mb-4">{err}</p>}
+
+            <div className="flex gap-2.5">
+              <button onClick={close}
+                className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 hover:border-white/20 transition-colors">
+                ←
+              </button>
+              <button onClick={() => {
+                if (deliveryType === 'delivery' && !address.trim()) { setErr(tt('Укажите адрес доставки')); return; }
+                setErr(''); setStep('card');
+              }}
+                className="flex-1 bg-white text-black text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-white/92 transition-colors">
+                {tt('Далее')} →
+              </button>
+            </div>
+          </div>
+        )}
 
         {step === 'card' && (
           <div className="p-7">
@@ -278,6 +376,11 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
               <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-1">{tt('Оплата заказа')}</p>
               <p className="text-2xl font-black">{fmt(total)}</p>
               <p className="text-[10px] text-white/30 mt-1">{items.length} поз. · {totalQty} шт.</p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-[9px] text-white/25 uppercase tracking-wider font-semibold">
+                  {deliveryType === 'pickup' ? `📍 ${tt('Самовывоз')}` : `🚚 ${address}`}
+                </span>
+              </div>
             </div>
 
             <div className="space-y-1 mb-5 divide-y divide-white/5 border border-white/8">
@@ -316,7 +419,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
             {err && <p className="text-xs text-red-400/80 mb-4">{err}</p>}
 
             <div className="flex gap-2.5">
-              <button onClick={close}
+              <button onClick={() => { setErr(''); setStep('delivery'); }}
                 className="px-5 py-4 border border-white/10 text-white/30 text-xs hover:text-white/60 hover:border-white/20 transition-colors">
                 ←
               </button>
@@ -953,6 +1056,16 @@ export default function ClientPage() {
                         {o.notes && (
                           <p className="text-[10px] text-white/30">{tt('Примечание:')} {o.notes}</p>
                         )}
+                        {!o.isCustom && o.deliveryType && (
+                          <div className="border border-white/8 px-3 py-2">
+                            <p className="text-[9px] font-semibold tracking-[0.3em] uppercase text-white/25 mb-0.5">
+                              {o.deliveryType === 'pickup' ? `📍 ${tt('Самовывоз')}` : `🚚 ${tt('Доставка')}`}
+                            </p>
+                            <p className="text-[10px] text-white/40">
+                              {o.deliveryType === 'pickup' ? STORE_ADDRESS : o.deliveryAddress}
+                            </p>
+                          </div>
+                        )}
                         <div className="pt-2 space-y-1">
                           {steps.map((s, i) => (
                             <div key={s.key} className={`flex items-center gap-3 ${i > idx ? 'opacity-25' : ''}`}>
@@ -974,6 +1087,67 @@ export default function ClientPage() {
         </div>
       )}
 
+      {tab === 'store' && (
+        <div className="px-5 pt-[80px] pb-28">
+          <div className="mb-8">
+            <p className="text-[9px] font-semibold tracking-[0.5em] uppercase text-white/20 mb-2">{tt('Наш магазин')}</p>
+            <h1 className="text-3xl font-black uppercase tracking-tight leading-none">AVISHU</h1>
+            <p className="text-[10px] font-semibold tracking-[0.35em] uppercase text-white/22 mt-2">Boutique · Karaganda</p>
+          </div>
+
+          <div className="border border-white/8 overflow-hidden mb-6">
+            <iframe
+              title="store-location"
+              width="100%" height="280" style={{ border: 0 }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(STORE_ADDRESS)}&zoom=16`}
+            />
+          </div>
+
+          <div className="border border-white/8 bg-[#080808] divide-y divide-white/6">
+            <div className="px-5 py-4">
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-1.5">{tt('Адрес')}</p>
+              <p className="text-sm text-white/70">{STORE_ADDRESS}</p>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-1.5">{tt('Режим работы')}</p>
+              <p className="text-sm text-white/70">{tt('Пн — Сб')}: 10:00 — 20:00</p>
+              <p className="text-sm text-white/50">{tt('Воскресенье')}: 11:00 — 18:00</p>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-1.5">{tt('Контакты')}</p>
+              <p className="text-sm text-white/70">+7 (777) 123-45-67</p>
+              <p className="text-sm text-white/50 mt-0.5">info@avishu.kz</p>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <a href={`https://www.google.com/maps/dir/?api=1&destination=${STORE_LAT},${STORE_LNG}`}
+              target="_blank" rel="noopener noreferrer"
+              className="block w-full bg-white text-black text-center text-xs font-black uppercase tracking-[0.25em] py-4 hover:bg-white/92 transition-colors">
+              {tt('Построить маршрут')}
+            </a>
+            <a href={`https://2gis.kz/karaganda/geo/${encodeURIComponent(STORE_ADDRESS)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="block w-full border border-white/15 text-center text-xs font-bold uppercase tracking-[0.2em] text-white/50 py-4 hover:border-white/30 hover:text-white/70 transition-colors">
+              {tt('Открыть в 2GIS')}
+            </a>
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-white/8 text-center">
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/20 mb-3">{tt('Самовывоз')}</p>
+            <p className="text-xs text-white/35 leading-relaxed max-w-[280px] mx-auto">
+              {tt('Закажите товар онлайн и заберите в магазине бесплатно. Выберите «Самовывоз» при оформлении заказа.')}
+            </p>
+            <button onClick={() => setTab('catalog')}
+              className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-white underline underline-offset-4 hover:text-white/60 transition-colors">
+              {tt('В каталог')} →
+            </button>
+          </div>
+        </div>
+      )}
+
       {selected && (
         <ShopModal
           item={selected}
@@ -989,6 +1163,7 @@ export default function ClientPage() {
       {checkout && (
         <CartCheckoutModal
           items={cart}
+          savedAddress={user?.delivery_address || ''}
           onClose={() => setCheckout(false)}
           onSuccess={() => { setCheckout(false); setTab('orders'); }}
         />
@@ -1019,6 +1194,7 @@ export default function ClientPage() {
       <BottomNav items={[
         { id: 'home',    icon: Icons.home,  label: tt('Главная'), active: tab === 'home',    onClick: () => setTab('home') },
         { id: 'catalog', icon: Icons.grid,  label: tt('Каталог'), active: tab === 'catalog', onClick: () => setTab('catalog') },
+        { id: 'store',   icon: Icons.pin,   label: tt('Магазин'), active: tab === 'store',   onClick: () => setTab('store') },
         { id: 'cart',    icon: Icons.bag,   label: tt('Корзина'), active: tab === 'cart',    onClick: () => setTab('cart'), badge: cartCount },
         { id: 'orders',  icon: Icons.list,  label: tt('Заказы'),  active: tab === 'orders',  onClick: () => setTab('orders') },
       ]} />

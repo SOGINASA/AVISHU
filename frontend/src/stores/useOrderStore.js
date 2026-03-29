@@ -31,7 +31,7 @@ const useOrderStore = create((set, get) => ({
 
   clearCart: () => set({ cart: [] }),
 
-  checkoutCart: async () => {
+  checkoutCart: async (deliveryType = 'delivery', deliveryAddress = null) => {
     const items = get().cart;
     const results = await Promise.allSettled(
       items.map(item =>
@@ -39,6 +39,8 @@ const useOrderStore = create((set, get) => ({
           productId: item.product.id,
           quantity: item.qty,
           desiredDate: item.desiredDate || undefined,
+          deliveryType,
+          deliveryAddress: deliveryType === 'delivery' ? deliveryAddress : null,
         })
       )
     );

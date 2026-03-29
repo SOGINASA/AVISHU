@@ -240,6 +240,9 @@ def update_profile():
         if 'avatar_url' in data:
             user.avatar_url = data['avatar_url']
 
+        if 'delivery_address' in data:
+            user.delivery_address = (data['delivery_address'] or '').strip() or None
+
         # Обновление роли (для завершения регистрации OAuth)
         if 'role' in data and data['role']:
             role = data['role'].strip().lower()

@@ -32,7 +32,7 @@ function fromB64url(str) {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
   const { i18n, t } = useTranslation();
   const tt = (s) => tr(s, i18n.language);
 
@@ -42,6 +42,9 @@ export default function ProfilePage() {
   const [deletingId, setDeletingId] = useState(null);
   const [msg, setMsg] = useState(null); // { text, error }
   const [nativeBioEnabled, setNativeBioEnabled] = useState(false);
+  const [editAddr, setEditAddr] = useState(false);
+  const [addrVal, setAddrVal] = useState(user?.delivery_address || '');
+  const [savingAddr, setSavingAddr] = useState(false);
 
   const flash = (text, error = false) => {
     setMsg({ text, error });
@@ -201,6 +204,50 @@ export default function ProfilePage() {
             <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30 mb-1.5">{tt('Роль')}</p>
             <p className="text-sm text-white/70">{tt(ROLE_LABELS[user?.user_type] || user?.user_type)}</p>
           </div>
+          {user?.user_type === 'client' && (
+            <div className="px-5 py-4 border-t border-white/8">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30">{tt('Адрес доставки')}</p>
+                <button onClick={() => { setEditAddr(!editAddr); setAddrVal(user?.delivery_address || ''); }}
+                  className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30 hover:text-white/60 transition-colors">
+                  {editAddr ? tt('Отмена') : tt('Изменить')}
+                </button>
+              </div>
+              {!editAddr ? (
+                <p className="text-sm text-white/70">{user?.delivery_address || tt('Не указан')}</p>
+              ) : (
+                <div className="space-y-3 mt-2">
+                  <input value={addrVal} onChange={e => setAddrVal(e.target.value)}
+                    placeholder={tt('Город, улица, дом, квартира')}
+                    className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+                  {addrVal && (
+                    <div className="border border-white/8 overflow-hidden">
+                      <iframe
+                        title="addr-preview"
+                        width="100%" height="120" style={{ border: 0 }}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(addrVal)}&zoom=14`}
+                      />
+                    </div>
+                  )}
+                  <button onClick={async () => {
+                    setSavingAddr(true);
+                    try {
+                      const d = await api.updateProfile({ delivery_address: addrVal.trim() });
+                      setUser(d.user);
+                      setEditAddr(false);
+                      flash(tt('Адрес сохранён'));
+                    } catch (e) { flash(e.message, true); }
+                    finally { setSavingAddr(false); }
+                  }} disabled={savingAddr}
+                    className="w-full bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] py-3 hover:bg-white/92 transition-colors disabled:opacity-40">
+                    {savingAddr ? '...' : tt('Сохранить')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="px-5 py-4 border-t border-white/8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[9px] font-semibold tracking-[0.45em] uppercase text-white/30">{tt('Язык')}</p>
             <LanguageSwitcher variant="inline" />

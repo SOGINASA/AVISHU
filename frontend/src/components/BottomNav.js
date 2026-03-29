@@ -87,4 +87,10 @@ export const Icons = {
       <path d="M3 16V9M6.5 16V6M10 16V10M13.5 16V4" stroke="currentColor" strokeWidth="0.75" strokeLinecap="square"/>
     </svg>
   ),
+  pin: (
+    <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+      <path d="M8.5 1C5.46 1 3 3.46 3 6.5 3 10.75 8.5 16 8.5 16S14 10.75 14 6.5C14 3.46 11.54 1 8.5 1Z" stroke="currentColor" strokeWidth="0.75"/>
+      <circle cx="8.5" cy="6.5" r="2" stroke="currentColor" strokeWidth="0.75"/>
+    </svg>
+  ),
 };

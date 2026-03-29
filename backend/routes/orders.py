@@ -74,6 +74,8 @@ def create_order():
         quantity=quantity,
         total_price=total_price,
         notes=data.get('notes'),
+        delivery_type=data.get('deliveryType', 'delivery'),
+        delivery_address=data.get('deliveryAddress'),
         desired_date=desired_date,
     )
     db.session.add(order)
