@@ -87,6 +87,14 @@ function ProductTile({ p, onOpen }) {
           {p.isPreorder ? 'Предзаказ' : p.inStock ? 'В наличии' : 'Нет'}
         </p>
       </div>
+      {p.sizes && p.sizes.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {p.sizes.slice(0, 5).map(s => (
+            <span key={s} className="text-[7px] font-bold tracking-wider text-white/20 border border-white/8 px-1.5 py-0.5">{s}</span>
+          ))}
+          {p.sizes.length > 5 && <span className="text-[7px] text-white/15">+{p.sizes.length - 5}</span>}
+        </div>
+      )}
     </button>
   );
 }
@@ -94,8 +102,10 @@ function ProductTile({ p, onOpen }) {
 function ShopModal({ item, onClose, onAddToCart }) {
   const [qty, setQty] = useState(1);
   const [date, setDate] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
   const [open, setOpen] = useState(false);
   const [added, setAdded] = useState(false);
+  const [showCare, setShowCare] = useState(false);
   const { i18n } = useTranslation();
   const tt = (s) => tr(s, i18n.language);
 
@@ -132,6 +142,44 @@ function ShopModal({ item, onClose, onAddToCart }) {
 
           {item.description && (
             <p className="text-sm text-white/35 leading-relaxed pb-4 mb-4 border-b border-white/6">{item.description}</p>
+          )}
+
+          {/* ── Размеры ── */}
+          {item.sizes && item.sizes.length > 0 && (
+            <div className="mb-4 pb-4 border-b border-white/6">
+              <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2.5">{tt('Размер')}</p>
+              <div className="flex flex-wrap gap-2">
+                {item.sizes.map(s => (
+                  <button key={s} onClick={() => setSelectedSize(selectedSize === s ? '' : s)}
+                    className={`min-w-[40px] h-9 px-2.5 text-[11px] font-bold uppercase tracking-wider border transition-all duration-200 ${
+                      selectedSize === s
+                        ? 'bg-white text-black border-white'
+                        : 'bg-transparent text-white/50 border-white/15 hover:border-white/40 hover:text-white/80'
+                    }`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Уход за одеждой ── */}
+          {item.careInstructions && (
+            <div className="mb-4 pb-4 border-b border-white/6">
+              <button onClick={() => setShowCare(!showCare)}
+                className="flex items-center justify-between w-full group">
+                <span className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 group-hover:text-white/50 transition-colors">
+                  {tt('Уход за изделием')}
+                </span>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  className={`text-white/25 transition-transform duration-200 ${showCare ? 'rotate-180' : ''}`}>
+                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1"/>
+                </svg>
+              </button>
+              <div className={`overflow-hidden transition-all duration-300 ${showCare ? 'max-h-60 opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                <p className="text-xs text-white/35 leading-relaxed whitespace-pre-line">{item.careInstructions}</p>
+              </div>
+            </div>
           )}
 
           {item.isPreorder && (

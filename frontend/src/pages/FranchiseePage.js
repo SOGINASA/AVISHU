@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../stores/useAuthStore';
 import useOrderStore from '../stores/useOrderStore';
 import { api, BASE_URL } from '../api';
@@ -85,8 +85,310 @@ function SetPriceModal({ order, onClose, onDone }) {
   );
 }
 
+const URGENCY_STYLE = {
+  critical: { bg: 'bg-red-500/10 border-red-500/20', text: 'text-red-400', dot: 'bg-red-400', label: 'Критично' },
+  high:     { bg: 'bg-orange-500/10 border-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400', label: 'Высокий' },
+  medium:   { bg: 'bg-yellow-500/10 border-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400', label: 'Средний' },
+  low:      { bg: 'bg-green-500/10 border-green-500/20', text: 'text-green-400', dot: 'bg-green-400', label: 'В норме' },
+};
+
+function MiniBar({ value, max, className = '' }) {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  return (
+    <div className={`h-1 bg-white/8 overflow-hidden ${className}`}>
+      <div className="h-full bg-white/40 transition-all duration-500" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function AnalyticsTab({ tt }) {
+  const [revenue, setRevenue] = useState(null);
+  const [salesHistory, setSalesHistory] = useState(null);
+  const [dailySales, setDailySales] = useState(null);
+  const [categories, setCategories] = useState(null);
+  const [forecast, setForecast] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [period, setPeriod] = useState(30);
+  const [forecastDays, setForecastDays] = useState(7);
+  const [fade, setFade] = useState(false);
+
+  // Первичная загрузка
+  useEffect(() => {
+    Promise.all([
+      api.analytics.revenue(6).catch(() => null),
+      api.analytics.salesHistory(period, 15).catch(() => null),
+      api.analytics.dailySales(period).catch(() => null),
+      api.analytics.byCategory(period).catch(() => null),
+      api.analytics.demandForecast(forecastDays).catch(() => null),
+    ]).then(([rev, sales, daily, cats, fc]) => {
+      setRevenue(rev);
+      setSalesHistory(sales);
+      setDailySales(daily);
+      setCategories(cats);
+      setForecast(fc);
+    }).finally(() => setInitialLoad(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Обновление при смене периода — плавно без перезагрузки
+  const changePeriod = (newPeriod) => {
+    if (newPeriod === period) return;
+    setFade(true);
+    setUpdating(true);
+    setTimeout(() => {
+      setPeriod(newPeriod);
+      Promise.all([
+        api.analytics.salesHistory(newPeriod, 15).catch(() => null),
+        api.analytics.dailySales(newPeriod).catch(() => null),
+        api.analytics.byCategory(newPeriod).catch(() => null),
+      ]).then(([sales, daily, cats]) => {
+        setSalesHistory(sales);
+        setDailySales(daily);
+        setCategories(cats);
+      }).finally(() => {
+        setUpdating(false);
+        setFade(false);
+      });
+    }, 150);
+  };
+
+  const changeForecastDays = (newDays) => {
+    if (newDays === forecastDays) return;
+    setUpdating(true);
+    setForecastDays(newDays);
+    api.analytics.demandForecast(newDays).then(fc => {
+      setForecast(fc);
+    }).catch(() => {}).finally(() => setUpdating(false));
+  };
+
+  if (initialLoad) {
+    return <div className="py-20 text-center text-xs text-white/20 tracking-widest uppercase">{tt('Загрузка аналитики')}...</div>;
+  }
+
+  const monthlyData = revenue?.monthly || [];
+  const maxRevenue = Math.max(...monthlyData.map(m => m.revenue), 1);
+  const dailyData = dailySales?.dailySales || [];
+  const maxDaily = Math.max(...dailyData.map(d => d.revenue), 1);
+  const catData = categories?.categories || [];
+  const maxCatRev = Math.max(...catData.map(c => c.totalRevenue), 1);
+  const salesItems = salesHistory?.salesHistory || [];
+  const maxSold = Math.max(...salesItems.map(s => s.totalSold), 1);
+  const forecastItems = forecast?.forecast || [];
+  const summary = forecast?.summary || {};
+
+  return (
+    <div className="space-y-6 relative">
+      {updating && (
+        <div className="absolute top-0 left-0 right-0 z-10 h-0.5 bg-white/5 overflow-hidden">
+          <div className="h-full w-1/3 bg-white/40 animate-[slideRight_0.8s_ease-in-out_infinite]" />
+        </div>
+      )}
+
+      {/* ── Доход ── */}
+      {revenue && (
+        <div className="border border-white/6 overflow-hidden">
+          <div className="px-5 pt-5 pb-4 border-b border-white/6">
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">{tt('Доход за месяц')}</p>
+            <p className="text-3xl font-black">{fmt(revenue.currentMonth?.revenue || 0)}</p>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-xs text-white/40">{revenue.currentMonth?.orders || 0} {tt('заказов')}</span>
+              {revenue.growthPct != null && (
+                <span className={`text-xs font-bold ${revenue.growthPct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {revenue.growthPct >= 0 ? '↑' : '↓'} {Math.abs(revenue.growthPct)}%
+                </span>
+              )}
+            </div>
+          </div>
+          {monthlyData.length > 0 && (
+            <div className="px-5 py-4">
+              <p className="text-[8px] font-semibold tracking-[0.3em] uppercase text-white/20 mb-3">{tt('Выручка по месяцам')}</p>
+              <div className="flex items-end gap-1 h-20">
+                {monthlyData.map((m, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full bg-white/6 overflow-hidden flex flex-col justify-end" style={{ height: '60px' }}>
+                      <div className="bg-white/30 transition-all duration-500" style={{ height: `${(m.revenue / maxRevenue) * 100}%` }} />
+                    </div>
+                    <span className="text-[7px] text-white/25 font-medium">{m.label?.slice(0, 3)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Период ── */}
+      <div className="flex gap-px bg-white/6 border border-white/6 overflow-hidden">
+        {[7, 14, 30, 90].map(d => (
+          <button key={d} onClick={() => changePeriod(d)}
+            className={`flex-1 py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-colors bg-black ${
+              period === d ? 'text-white' : 'text-white/25 hover:text-white/50'
+            }`}>
+            {d} {tt('дн.')}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Ежедневные продажи ── */}
+      <div className={`transition-all duration-300 ${fade ? 'opacity-30 scale-[0.99]' : 'opacity-100 scale-100'}`}>
+      {dailyData.length > 0 && (
+        <div className="border border-white/6 p-5">
+          <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-4">{tt('Ежедневный доход')}</p>
+          <div className="flex items-end gap-px h-24">
+            {dailyData.slice(-30).map((d, i) => (
+              <div key={i} className="flex-1 group relative">
+                <div className="w-full bg-white/5 overflow-hidden flex flex-col justify-end" style={{ height: '96px' }}>
+                  <div className="bg-white/25 group-hover:bg-white/40 transition-all duration-200 min-h-[1px]"
+                    style={{ height: `${(d.revenue / maxDaily) * 100}%` }} />
+                </div>
+                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black border border-white/20 px-1.5 py-1 whitespace-nowrap z-10">
+                  <p className="text-[8px] text-white/60">{d.date}</p>
+                  <p className="text-[9px] font-bold">{fmt(d.revenue)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── По категориям ── */}
+      {catData.length > 0 && (
+        <div className="border border-white/6 p-5">
+          <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-4">{tt('Продажи по категориям')}</p>
+          <div className="space-y-3">
+            {catData.map((c, i) => (
+              <div key={i}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold uppercase tracking-wide">{c.category}</span>
+                  <span className="text-xs text-white/40">{fmt(c.totalRevenue)} · {c.totalSold} шт.</span>
+                </div>
+                <MiniBar value={c.totalRevenue} max={maxCatRev} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Топ товаров ── */}
+      {salesItems.length > 0 && (
+        <div className="border border-white/6 p-5">
+          <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-4">{tt('Топ товаров')}</p>
+          <div className="space-y-3">
+            {salesItems.map((s, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-[10px] text-white/20 font-bold w-5 text-right">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide truncate">{s.productName}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-white/30">{s.totalSold} шт.</span>
+                    <span className="text-[10px] text-white/30">{fmt(s.totalRevenue)}</span>
+                  </div>
+                  <MiniBar value={s.totalSold} max={maxSold} className="mt-1" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* ── ML-прогноз дефицита ── */}
+      <div className="border border-white/6 overflow-hidden">
+        <div className="px-5 pt-5 pb-4 border-b border-white/6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25">{tt('Прогноз дефицита')}</p>
+            <div className="flex gap-1">
+              {[7, 14].map(d => (
+                <button key={d} onClick={() => changeForecastDays(d)}
+                  className={`text-[9px] font-bold px-2 py-1 border transition-colors ${
+                    forecastDays === d ? 'border-white/30 text-white' : 'border-white/8 text-white/25 hover:text-white/50'
+                  }`}>
+                  {d}{tt('д')}
+                </button>
+              ))}
+            </div>
+          </div>
+          {summary.total > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { key: 'critical', label: tt('Критично'), color: 'text-red-400' },
+                { key: 'high', label: tt('Высокий'), color: 'text-orange-400' },
+                { key: 'medium', label: tt('Средний'), color: 'text-yellow-400' },
+                { key: 'low', label: tt('В норме'), color: 'text-green-400' },
+              ].map(u => (
+                <div key={u.key} className="text-center py-2 bg-white/3">
+                  <p className={`text-lg font-black ${u.color}`}>{summary[u.key] || 0}</p>
+                  <p className="text-[7px] font-semibold tracking-[0.2em] uppercase text-white/25">{u.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {forecastItems.length === 0 ? (
+          <div className="px-5 py-8 text-center text-xs text-white/25">
+            {forecast?.error || tt('Нет данных для прогноза. Убедитесь, что ML-модель обучена.')}
+          </div>
+        ) : (
+          <div className="divide-y divide-white/6">
+            {forecastItems.filter(f => f.urgency !== 'low').map((f, i) => {
+              const st = URGENCY_STYLE[f.urgency] || URGENCY_STYLE.low;
+              return (
+                <div key={i} className={`px-5 py-4 ${i === 0 && f.urgency === 'critical' ? 'bg-red-500/5' : ''}`}>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                        <p className="text-xs font-bold uppercase tracking-wide truncate">{f.product_name}</p>
+                      </div>
+                      <p className="text-[10px] text-white/30 ml-3.5">{f.category} · {fmt(f.price)}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className={`text-[9px] font-bold tracking-[0.15em] uppercase px-2 py-0.5 border ${st.bg} ${st.text}`}>
+                        {st.label}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 ml-3.5">
+                    <div>
+                      <p className="text-[8px] text-white/20 font-semibold">{tt('Остаток')}</p>
+                      <p className="text-sm font-black">{f.current_stock}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] text-white/20 font-semibold">{tt('Спрос')}/д</p>
+                      <p className="text-sm font-black">{f.avg_daily_demand}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] text-white/20 font-semibold">{tt('Хватит на')}</p>
+                      <p className="text-sm font-black">{f.days_until_stockout < 100 ? `${f.days_until_stockout}д` : '∞'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] text-white/20 font-semibold">{tt('Дозаказ')}</p>
+                      <p className="text-sm font-black">{f.reorder_quantity} шт.</p>
+                    </div>
+                  </div>
+                  {f.recommendation && (
+                    <p className="text-[10px] text-white/25 mt-2 ml-3.5 italic">{f.recommendation}</p>
+                  )}
+                </div>
+              );
+            })}
+            {forecastItems.filter(f => f.urgency === 'low').length > 0 && (
+              <div className="px-5 py-3 text-xs text-white/25">
+                ✓ {forecastItems.filter(f => f.urgency === 'low').length} {tt('позиций в норме')}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function FranchiseePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuthStore();
   const {
     orders, customOrders, loading,
@@ -97,6 +399,7 @@ export default function FranchiseePage() {
   const [busy, setBusy] = useState(null);
   const [priceModal, setPriceModal] = useState(null);
   const [salesPlan, setSalesPlan] = useState(null);
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'main');
   const { i18n } = useTranslation();
   const tt = (s) => tr(s, i18n.language);
 
@@ -214,6 +517,10 @@ export default function FranchiseePage() {
           <h1 className="text-2xl font-black uppercase tracking-tight">{user?.full_name || tt('Партнёр')}</h1>
         </div>
 
+        {activeTab === 'analytics' ? (
+          <AnalyticsTab tt={tt} />
+        ) : (
+        <>
         <div className="border border-white/6 mb-8 overflow-hidden">
           <div className="bg-black px-5 pt-5 pb-4 border-b border-white/6">
             <p className="text-[9px] font-semibold tracking-[0.4em] uppercase text-white/25 mb-2">{tt('Выручка')} · {month}</p>
@@ -402,11 +709,14 @@ export default function FranchiseePage() {
             }}
           />
         )}
+        </>
+        )}
       </div>
 
       <BottomNav items={[
-        { id: 'main',    icon: Icons.home,   label: tt('Главная'), active: true,  onClick: () => {} },
-        { id: 'profile', icon: Icons.person, label: tt('Профиль'), active: false, onClick: () => navigate('/app/profile') },
+        { id: 'main',      icon: Icons.home,   label: tt('Главная'),    active: activeTab === 'main',      onClick: () => setActiveTab('main') },
+        { id: 'analytics', icon: Icons.chart, label: tt('Аналитика'), active: activeTab === 'analytics', onClick: () => setActiveTab('analytics') },
+        { id: 'profile',   icon: Icons.person, label: tt('Профиль'),    active: false, onClick: () => navigate('/app/profile') },
       ]} />
     </div>
   );

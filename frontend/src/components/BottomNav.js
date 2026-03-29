@@ -81,4 +81,10 @@ export const Icons = {
       <path d="M6.5 4L16 13M6.5 13L16 4" stroke="currentColor" strokeWidth="0.75"/>
     </svg>
   ),
+  chart: (
+    <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+      <path d="M1 16h15" stroke="currentColor" strokeWidth="0.75" strokeLinecap="square"/>
+      <path d="M3 16V9M6.5 16V6M10 16V10M13.5 16V4" stroke="currentColor" strokeWidth="0.75" strokeLinecap="square"/>
+    </svg>
+  ),
 };

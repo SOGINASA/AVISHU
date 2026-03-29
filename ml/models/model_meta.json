@@ -1,0 +1,33 @@
+{
+  "mae": 0.95,
+  "rmse": 1.46,
+  "r2": 0.772,
+  "trained_on": 8300,
+  "features": [
+    "price",
+    "day_of_week",
+    "is_weekend",
+    "month",
+    "week_of_year",
+    "stock_remaining",
+    "sales_ma_3",
+    "sales_ma_7",
+    "sales_ma_14",
+    "sales_std_7",
+    "sales_max_7",
+    "sales_min_7",
+    "sales_trend_7",
+    "category_code"
+  ],
+  "category_map": {
+    "Аксессуары": 0,
+    "Блузки": 1,
+    "Брюки": 2,
+    "Жакеты": 3,
+    "Костюмы": 4,
+    "Пальто": 5,
+    "Платья": 6,
+    "Юбки": 7
+  },
+  "trained_at": "2026-03-29T13:12:42.890347"
+}

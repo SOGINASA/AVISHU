@@ -321,8 +321,9 @@ export default function ProfilePage() {
       )}
       {user?.user_type === 'franchisee' && (
         <BottomNav items={[
-          { id: 'main',    icon: Icons.home,   label: 'Главная', active: false, onClick: () => navigate('/app/franchisee') },
-          { id: 'profile', icon: Icons.person, label: 'Профиль', active: true,  onClick: () => {} },
+          { id: 'main',      icon: Icons.home,   label: tt('Главная'),    active: false, onClick: () => navigate('/app/franchisee') },
+          { id: 'analytics', icon: Icons.chart,  label: tt('Аналитика'), active: false, onClick: () => navigate('/app/franchisee', { state: { tab: 'analytics' } }) },
+          { id: 'profile',   icon: Icons.person, label: tt('Профиль'),    active: true,  onClick: () => {} },
         ]} />
       )}
       {user?.user_type === 'production' && (

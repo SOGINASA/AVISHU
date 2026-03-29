@@ -187,4 +187,13 @@ export const api = {
     myPlan: (month) =>
       authed(`/api/admin/my-plan?month=${month}`),
   },
+
+  // ── Analytics (Franchisee) ────────────────────────────────────────────────
+  analytics: {
+    revenue: (months = 6) => authed(`/api/analytics/revenue?months=${months}`),
+    salesHistory: (days = 30, limit = 20) => authed(`/api/analytics/sales-history?days=${days}&limit=${limit}`),
+    dailySales: (days = 30) => authed(`/api/analytics/daily-sales?days=${days}`),
+    byCategory: (days = 30) => authed(`/api/analytics/by-category?days=${days}`),
+    demandForecast: (days = 7) => authed(`/api/analytics/demand-forecast?days=${days}`),
+  },
 };

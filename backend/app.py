@@ -46,6 +46,16 @@ def _run_migrations(app):
             if 'claimed_at' not in existing:
                 conn.execute(text('ALTER TABLE orders ADD COLUMN claimed_at DATETIME'))
                 conn.commit()
+        # Products: sizes & care_instructions
+        if 'products' in inspector.get_table_names():
+            prod_cols = {c['name'] for c in inspector.get_columns('products')}
+            with db.engine.connect() as conn:
+                if 'sizes' not in prod_cols:
+                    conn.execute(text('ALTER TABLE products ADD COLUMN sizes TEXT'))
+                    conn.commit()
+                if 'care_instructions' not in prod_cols:
+                    conn.execute(text('ALTER TABLE products ADD COLUMN care_instructions TEXT'))
+                    conn.commit()
 
 
 def _ensure_admin(app):
@@ -132,6 +142,7 @@ def create_app():
     from routes.products import products_bp
     from routes.orders import orders_bp
     from routes.custom_orders import custom_orders_bp
+    from routes.analytics import analytics_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(oauth_bp, url_prefix='/api/auth/oauth')
     app.register_blueprint(webauthn_bp, url_prefix='/api/auth/webauthn')
@@ -141,6 +152,7 @@ def create_app():
     app.register_blueprint(products_bp, url_prefix='/api/products')
     app.register_blueprint(orders_bp, url_prefix='/api/orders')
     app.register_blueprint(custom_orders_bp, url_prefix='/api/custom-orders')
+    app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
 
     # WebSocket для real-time уведомлений
     @sock.route('/ws/notifications')

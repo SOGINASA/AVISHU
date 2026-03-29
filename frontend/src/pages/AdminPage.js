@@ -33,7 +33,7 @@ const fmtDate = (s) =>
 
 const ROLE_LABEL = { client: 'Клиент', franchisee: 'Партнёр', production: 'Цех', admin: 'Адм' };
 
-const emptyForm = { name: '', price: '', category: 'outerwear', description: '', isPreorder: false, inStock: true };
+const emptyForm = { name: '', price: '', category: 'outerwear', description: '', sizes: '', careInstructions: '', isPreorder: false, inStock: true };
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -169,7 +169,7 @@ export default function AdminPage() {
 
   const startEdit = (p) => {
     setEditingId(p.id);
-    setEditForm({ name: p.name, price: String(p.price), category: p.category || 'outerwear', description: p.description || '', isPreorder: p.isPreorder || false, inStock: p.inStock !== false });
+    setEditForm({ name: p.name, price: String(p.price), category: p.category || 'outerwear', description: p.description || '', sizes: (p.sizes || []).join(', '), careInstructions: p.careInstructions || '', isPreorder: p.isPreorder || false, inStock: p.inStock !== false });
     setEditImageFile(null);
     setEditImagePreview(p.imageUrl ? `${BASE_URL}${p.imageUrl}` : null);
     setEditErr('');
@@ -185,6 +185,8 @@ export default function AdminPage() {
         price: parseFloat(editForm.price),
         category: editForm.category,
         description: editForm.description.trim() || undefined,
+        sizes: editForm.sizes ? editForm.sizes.split(',').map(s => s.trim()).filter(Boolean) : [],
+        careInstructions: editForm.careInstructions.trim() || undefined,
         isPreorder: editForm.isPreorder,
         inStock: editForm.isPreorder ? false : editForm.inStock,
       });
@@ -220,6 +222,8 @@ export default function AdminPage() {
         price: parseFloat(form.price),
         category: form.category,
         description: form.description.trim() || undefined,
+        sizes: form.sizes ? form.sizes.split(',').map(s => s.trim()).filter(Boolean) : [],
+        careInstructions: form.careInstructions.trim() || undefined,
         isPreorder: form.isPreorder,
         inStock: form.isPreorder ? false : form.inStock,
       });
@@ -412,6 +416,23 @@ export default function AdminPage() {
                     className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15 resize-none" />
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Размеры</p>
+                    <input value={form.sizes} onChange={e => setForm(f => ({ ...f, sizes: e.target.value }))}
+                      placeholder="XS, S, M, L, XL, XXL"
+                      className="w-full bg-transparent border-b border-white/12 text-white pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+                    <p className="text-[8px] text-white/15 mt-1">Через запятую</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Уход за изделием</p>
+                    <textarea value={form.careInstructions} onChange={e => setForm(f => ({ ...f, careInstructions: e.target.value }))}
+                      placeholder="Стирка 30°, не отбеливать..."
+                      rows={2}
+                      className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2.5 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15 resize-none" />
+                  </div>
+                </div>
+
                 <div>
                   <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Фото товара</p>
                   <label className="flex items-center gap-4 cursor-pointer group">
@@ -517,6 +538,22 @@ export default function AdminPage() {
                           <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Описание</p>
                           <textarea value={editForm.description} rows={2} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                             className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2 text-sm outline-none focus:border-white/40 transition-colors resize-none" />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Размеры</p>
+                            <input value={editForm.sizes} onChange={e => setEditForm(f => ({ ...f, sizes: e.target.value }))}
+                              placeholder="XS, S, M, L, XL, XXL"
+                              className="w-full bg-transparent border-b border-white/12 text-white pb-2 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15" />
+                            <p className="text-[8px] text-white/15 mt-1">Через запятую</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-semibold tracking-[0.35em] uppercase text-white/30 mb-2">Уход за изделием</p>
+                            <textarea value={editForm.careInstructions} rows={2} onChange={e => setEditForm(f => ({ ...f, careInstructions: e.target.value }))}
+                              placeholder="Стирка 30°, не отбеливать..."
+                              className="w-full bg-transparent border-b border-white/12 text-white/80 pb-2 text-sm outline-none focus:border-white/40 transition-colors placeholder-white/15 resize-none" />
+                          </div>
                         </div>
 
                         <div>

@@ -45,9 +45,13 @@ def create_product():
         price=float(data['price']),
         image_url=data.get('imageUrl') or data.get('image_url'),
         category=data.get('category'),
+        care_instructions=data.get('careInstructions') or data.get('care_instructions'),
         is_preorder=data.get('isPreorder', False),
         in_stock=data.get('inStock', True),
     )
+    sizes = data.get('sizes')
+    if sizes and isinstance(sizes, list):
+        product.set_sizes(sizes)
     db.session.add(product)
     db.session.commit()
     return jsonify({'product': product.to_dict()}), 201
@@ -68,6 +72,9 @@ def update_product(product_id):
     if 'price' in data:       product.price = float(data['price'])
     if 'description' in data: product.description = data['description']
     if 'category' in data:    product.category = data['category']
+    if 'sizes' in data:       product.set_sizes(data['sizes'] if isinstance(data['sizes'], list) else [])
+    if 'careInstructions' in data or 'care_instructions' in data:
+        product.care_instructions = data.get('careInstructions') or data.get('care_instructions')
     if 'isPreorder' in data:  product.is_preorder = data['isPreorder']
     if 'inStock' in data:     product.in_stock = data['inStock']
     db.session.commit()

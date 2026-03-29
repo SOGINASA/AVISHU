@@ -311,10 +311,25 @@ class Product(db.Model):
     price = db.Column(db.Float, nullable=False)
     image_url = db.Column(db.String(500), nullable=True)
     category = db.Column(db.String(50), nullable=True)
+    sizes = db.Column(db.Text, nullable=True)             # JSON: ["XS","S","M","L","XL"]
+    care_instructions = db.Column(db.Text, nullable=True)  # Markdown/plain text
     is_preorder = db.Column(db.Boolean, default=False)
     in_stock = db.Column(db.Boolean, default=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def get_sizes(self):
+        if not self.sizes:
+            return []
+        import json
+        try:
+            return json.loads(self.sizes)
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    def set_sizes(self, sizes_list):
+        import json
+        self.sizes = json.dumps(sizes_list, ensure_ascii=False) if sizes_list else None
 
     def to_dict(self):
         return {
@@ -324,6 +339,8 @@ class Product(db.Model):
             'price': self.price,
             'imageUrl': self.image_url,
             'category': self.category,
+            'sizes': self.get_sizes(),
+            'careInstructions': self.care_instructions,
             'isPreorder': self.is_preorder,
             'inStock': self.in_stock,
         }
