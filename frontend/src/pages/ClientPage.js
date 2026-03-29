@@ -173,6 +173,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState(null);
+  const [paidTotal, setPaidTotal] = useState(0);
   const { i18n } = useTranslation();
   const tt = (s) => tr(s, i18n.language);
 
@@ -210,6 +211,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
     if (cvv.length < 3) { setErr(tt('Введите CVV')); return; }
     setErr('');
     setStep('processing');
+    setPaidTotal(total);
     await new Promise(r => setTimeout(r, 2400));
     const res = await checkoutCart();
     setResult(res);
@@ -299,7 +301,7 @@ function CartCheckoutModal({ items, onClose, onSuccess }) {
             </div>
             <div className="text-center">
               <p className="text-base font-black uppercase tracking-[0.25em] mb-1">{tt('Оплачено')}</p>
-              <p className="text-2xl font-black">{fmt(total)}</p>
+              <p className="text-2xl font-black">{fmt(paidTotal)}</p>
             </div>
             <div className="w-full space-y-1">
               {result.succeeded.map(o => (
