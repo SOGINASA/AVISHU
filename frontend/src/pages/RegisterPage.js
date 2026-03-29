@@ -11,13 +11,6 @@ export default function RegisterPage() {
   const { t } = useTranslation();
   const isOAuth = searchParams.get('oauth') === 'true';
 
-  const ROLES = [
-    { id: 'client', label: t('registerPage.roles.client'), desc: t('registerPage.roles.clientDesc') },
-    { id: 'franchisee', label: t('registerPage.roles.franchisee'), desc: t('registerPage.roles.franchiseeDesc') },
-    { id: 'production', label: t('registerPage.roles.production'), desc: t('registerPage.roles.productionDesc') },
-  ];
-  
-  const [step, setStep] = useState(isOAuth ? 2 : 1);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'client' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,8 +28,6 @@ export default function RegisterPage() {
       }));
     }
   }, [isOAuth, user]);
-
-  const next = (e) => { e.preventDefault(); setStep(2); };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -63,7 +54,7 @@ export default function RegisterPage() {
       }
     } catch (err) {
       setError(err.message);
-      if (!isOAuth) setStep(1);
+      // registration failed
     } finally {
       setLoading(false);
     }
@@ -87,20 +78,13 @@ export default function RegisterPage() {
 
           {/* Steps indicator */}
           <div className="space-y-4">
-            {[
-              { n: 1, label: t('registerPage.stepData'), sub: t('registerPage.stepDataSub') },
-              { n: 2, label: t('registerPage.stepRole'), sub: t('registerPage.stepRoleSub') },
-            ].map(({ n, label, sub }) => (
-              <div key={n} className="flex items-center gap-4">
-                <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-black border flex-shrink-0 transition-colors ${step >= n ? 'border-white text-white' : 'border-white/20 text-white/20'}`}>
-                  {step > n ? '✓' : n}
-                </div>
-                <div>
-                  <div className={`text-xs font-bold tracking-[0.2em] transition-colors ${step >= n ? 'text-white' : 'text-white/20'}`}>{label}</div>
-                  <div className="text-[10px] text-white/20">{sub}</div>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="w-6 h-6 flex items-center justify-center text-[10px] font-black border border-white text-white">1</div>
+              <div>
+                <div className="text-xs font-bold tracking-[0.2em] text-white">{t('registerPage.stepData')}</div>
+                <div className="text-[10px] text-white/20">{t('registerPage.stepDataSub')}</div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
@@ -118,15 +102,8 @@ export default function RegisterPage() {
 
         <div className="w-full max-w-sm">
           {/* Progress bar */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex-1 h-px bg-white/10 overflow-hidden">
-              <div className="h-full bg-white transition-all duration-300" style={{ width: step === 1 ? '50%' : '100%' }} />
-            </div>
-            <span className="text-[10px] tracking-[0.2em] text-white/30">{step}/2</span>
-          </div>
-
           <h1 className="text-2xl font-black uppercase tracking-tight mb-1">
-            {step === 1 ? t('registerPage.stepData') : t('registerPage.yourRole')}
+            {t('registerPage.stepData')}
           </h1>
           <p className="text-white/30 text-xs tracking-wide mb-8">
             {t('registerPage.alreadyHave')}{' '}
@@ -135,8 +112,7 @@ export default function RegisterPage() {
             </Link>
           </p>
 
-          {step === 1 && (
-            <form onSubmit={next} className="space-y-4">
+          <form onSubmit={submit} className="space-y-4">
               <div>
                 <label className="block text-[10px] tracking-[0.3em] uppercase text-white/40 mb-2">{t('registerPage.name')}</label>
                 <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
@@ -167,43 +143,16 @@ export default function RegisterPage() {
               {error && (
                 <div className="border border-white/20 bg-white/5 px-4 py-3 text-xs text-white/70">{error}</div>
               )}
-              <div className="pt-2">
-                <button type="submit"
-                  className="w-full bg-white text-black font-black uppercase tracking-[0.2em] py-4 text-sm hover:bg-white/90 transition-colors">
-                  {t('registerPage.next')}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {step === 2 && (
-            <form onSubmit={submit} className="space-y-3">
-              {ROLES.map(r => (
-                <button key={r.id} type="button" onClick={() => set('role', r.id)}
-                  className={`w-full text-left px-5 py-4 border transition-colors ${form.role === r.id ? 'border-white bg-white/5' : 'border-white/15 hover:border-white/30'}`}>
-                  <div className={`text-xs font-black uppercase tracking-[0.2em] mb-0.5 ${form.role === r.id ? 'text-white' : 'text-white/60'}`}>
-                    {r.label}
-                  </div>
-                  <div className="text-[11px] text-white/30">{r.desc}</div>
-                </button>
-              ))}
-
               {error && (
                 <div className="border border-white/20 bg-white/5 px-4 py-3 text-xs text-white/70">{error}</div>
               )}
-
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setStep(1)}
-                  className="px-6 py-4 border border-white/15 text-white/40 text-xs uppercase tracking-widest hover:border-white/30 hover:text-white/70 transition-colors">
-                  {t('registerPage.back')}
-                </button>
+              <div className="pt-2">
                 <button type="submit" disabled={loading}
-                  className="flex-1 bg-white text-black font-black uppercase tracking-[0.2em] py-4 text-sm hover:bg-white/90 transition-colors disabled:opacity-40">
+                  className="w-full bg-white text-black font-black uppercase tracking-[0.2em] py-4 text-sm hover:bg-white/90 transition-colors disabled:opacity-40">
                   {loading ? '...' : t('registerPage.create')}
                 </button>
               </div>
             </form>
-          )}
         </div>
       </div>
     </div>

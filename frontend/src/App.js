@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import useAuthStore from './stores/useAuthStore';
 import { Capacitor } from '@capacitor/core';
@@ -48,7 +48,6 @@ function RoleRouter() {
 
 function AppInit({ children }) {
   const init = useAuthStore(s => s.init);
-  const login = useAuthStore(s => s.login);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -57,6 +56,13 @@ function AppInit({ children }) {
       init();
     }
   }, [init]);
+
+  return children;
+}
+
+function DeepLinkHandler() {
+  const login = useAuthStore(s => s.login);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -71,19 +77,21 @@ function AppInit({ children }) {
         try {
           const user = JSON.parse(userJson);
           login({ access_token, refresh_token }, user);
+          navigate('/app', { replace: true });
         } catch {}
       }
     });
     return () => { handler.then(h => h.remove()); };
-  }, [login]);
+  }, [login, navigate]);
 
-  return children;
+  return null;
 }
 
 export default function App() {
   return (
     <AppInit>
       <BrowserRouter>
+        <DeepLinkHandler />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
