@@ -99,6 +99,8 @@ npm run build
 
 ## 4. Сборка Android-приложения
 
+### Скачать apk файл просто приложения, он лежит в корне проекта файлов.
+
 ### Подготовка
 
 1. Установите [Android Studio](https://developer.android.com/studio)
@@ -260,7 +262,7 @@ docker-compose up -d --build
 
 ## Технологии
 
-**Frontend:** React 19, Zustand, TailwindCSS, Framer Motion, i18next, Capacitor 8
+**Frontend:** React 19, Zustand, TailwindCSS, Framer Motion, i18next, Capacitor 8, Swift, Kotlin
 
 **Backend:** Flask, SQLAlchemy, Flask-JWT-Extended, Flask-Sock (WebSocket), APScheduler
 
